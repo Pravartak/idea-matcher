@@ -3,9 +3,25 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { NotificationsDropdown } from "@/components/notifications-dropdown"
+import { useEffect, useState } from "react"
 
 export function Navbar() {
   const pathname = usePathname()
+  const [profileComplete, setProfileComplete] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false
+    return localStorage.getItem("im_profile_completed") === "1"
+  })
+
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === "im_profile_completed") {
+        setProfileComplete(e.newValue === "1")
+      }
+    }
+    window.addEventListener("storage", onStorage)
+    return () => window.removeEventListener("storage", onStorage)
+  }, [])
+
   if (pathname === "/signup" || pathname?.startsWith("/profile/complete")) {
     return null
   }
@@ -43,12 +59,14 @@ export function Navbar() {
 
           <NotificationsDropdown />
 
-          <Link
-            href="/signup"
-            className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-transform hover:scale-[1.02] hover:brightness-105 focus:outline-none focus:ring-2 focus:ring-ring"
-          >
-            Get Started
-          </Link>
+          {!profileComplete && (
+            <Link
+              href="/signup"
+              className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-transform hover:scale-[1.02] hover:brightness-105 focus:outline-none focus:ring-2 focus:ring-ring"
+            >
+              Get Started
+            </Link>
+          )}
         </div>
       </nav>
     </header>
