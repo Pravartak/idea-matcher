@@ -143,7 +143,18 @@ export default function ProfileSetupPage() {
           </Button>
           <div className="flex items-center gap-2">
             <Button asChild>
-              <Link href="/recommended-connections">Finish Setup</Link>
+              <Link
+                href="/recommended-connections"
+                onClick={() => {
+                  try {
+                    localStorage.setItem("im_profile_completed", "1")
+                  } catch {
+                    // no-op; still navigate
+                  }
+                }}
+              >
+                Finish Setup
+              </Link>
             </Button>
           </div>
         </div>
