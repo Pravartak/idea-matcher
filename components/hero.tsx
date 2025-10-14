@@ -21,13 +21,13 @@ export function Hero() {
         </p>
         <div className="mt-8 flex items-center justify-center gap-4">
           <Link
-            href="#signup"
+            href="/signup"
             className="rounded-md bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-sm transition-all hover:translate-y-[-1px] hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-ring"
           >
             Start Matching
           </Link>
           <Link
-            href="#about"
+            href="/about"
             className="rounded-md border border-border px-5 py-3 text-sm font-medium text-foreground/90 transition-colors hover:bg-card"
           >
             Learn More

@@ -15,7 +15,7 @@ export function Navbar() {
           <Link href="#home" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
             Home
           </Link>
-          <Link href="#about" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
+          <Link href="/about" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
             About
           </Link>
           <Link href="#features" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
@@ -28,7 +28,7 @@ export function Navbar() {
             Sign In
           </Link>
           <Link
-            href="#signup"
+            href="/signup"
             className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-transform hover:scale-[1.02] hover:brightness-105 focus:outline-none focus:ring-2 focus:ring-ring"
           >
             Get Started
