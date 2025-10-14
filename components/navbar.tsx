@@ -33,15 +33,6 @@ export function Navbar() {
           >
             Hackathon Teams
           </Link>
-          <Link href="#features" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
-            Features
-          </Link>
-          <Link href="#contact" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
-            Contact
-          </Link>
-          <Link href="#signin" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
-            Sign In
-          </Link>
           <Link
             href="/signup"
             className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-transform hover:scale-[1.02] hover:brightness-105 focus:outline-none focus:ring-2 focus:ring-ring"

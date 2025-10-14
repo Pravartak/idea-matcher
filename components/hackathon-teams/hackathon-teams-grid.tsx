@@ -80,13 +80,13 @@ export default function HackathonTeamsGrid() {
             placeholder="Search teams or hackathons..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-1 focus-visible:ring-foreground"
+            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm font-sans outline-none focus-visible:ring-1 focus-visible:ring-foreground"
           />
           <div className="grid grid-cols-2 md:flex gap-2 md:gap-3">
             <select
               value={role}
               onChange={(e) => setRole(e.target.value)}
-              className="rounded-md border border-border bg-background px-3 py-2 text-sm"
+              className="rounded-md border border-border bg-background px-3 py-2 text-sm font-sans"
             >
               <option>All</option>
               <option>Frontend</option>
@@ -100,10 +100,16 @@ export default function HackathonTeamsGrid() {
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {filtered.map((t) => (
-          <HackathonTeamCard key={t.id} team={t} onJoin={handleJoinTeam} />
-        ))}
+      <div className="relative">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 -z-10 rounded-xl bg-gradient-to-b from-primary/10 via-primary/5 to-transparent"
+        />
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {filtered.map((t) => (
+            <HackathonTeamCard key={t.id} team={t} onJoin={handleJoinTeam} />
+          ))}
+        </div>
       </div>
     </div>
   )
