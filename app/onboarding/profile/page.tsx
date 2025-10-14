@@ -1,0 +1,153 @@
+"use client"
+
+import type React from "react"
+
+import Link from "next/link"
+import Image from "next/image"
+import { useRef, useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { cn } from "@/lib/utils"
+
+const ROLES = ["Developer", "Designer", "Product Manager", "Researcher", "Entrepreneur", "Student", "Other"]
+
+export default function ProfileSetupPage() {
+  const fileRef = useRef<HTMLInputElement>(null)
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
+  const [bio, setBio] = useState("")
+  const [role, setRole] = useState<string>("")
+  const [github, setGithub] = useState("")
+  const [portfolio, setPortfolio] = useState("")
+
+  const MAX_BIO = 200
+
+  function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const url = URL.createObjectURL(file)
+    setAvatarUrl(url)
+  }
+
+  return (
+    <main className="min-h-dvh bg-background text-foreground">
+      {/* Top bar */}
+      <header className="sticky top-0 z-10 border-b border-border bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="mx-auto w-full max-w-3xl px-4 py-3 flex items-center justify-between">
+          <Link href="/" className="font-mono text-sm md:text-base">
+            <span className="font-semibold">Idea Matcher</span>
+          </Link>
+          <div className="text-xs md:text-sm text-muted-foreground">Step 3 of 3</div>
+        </div>
+      </header>
+
+      <section className="mx-auto w-full max-w-3xl px-4 py-10 md:py-12">
+        <div className="space-y-2">
+          <h1 className="text-2xl md:text-3xl font-semibold text-pretty">Set Up Your Profile</h1>
+          <p className="text-sm text-muted-foreground">This helps others know who you are.</p>
+        </div>
+
+        {/* Avatar uploader */}
+        <div className="mt-8 flex items-center gap-4">
+          <div className="size-20 md:size-24 rounded-full overflow-hidden border border-border bg-card flex items-center justify-center">
+            {avatarUrl ? (
+              // Note: using next/image for optimization; fallback to <img> if necessary.
+              <Image
+                src={avatarUrl || "/placeholder.svg"}
+                alt="Profile preview"
+                width={96}
+                height={96}
+                className="h-full w-full object-cover"
+                unoptimized
+              />
+            ) : (
+              <span className="text-xs text-muted-foreground">No Photo</span>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onFileChange} />
+            <Button onClick={() => fileRef.current?.click()}>Upload Photo</Button>
+            <Button variant="ghost" asChild>
+              <Link href="/">Skip for now</Link>
+            </Button>
+          </div>
+        </div>
+
+        {/* Bio */}
+        <div className="mt-8">
+          <label className="mb-2 block text-sm text-muted-foreground">Short Bio</label>
+          <div className="relative">
+            <textarea
+              value={bio}
+              onChange={(e) => setBio(e.target.value.slice(0, MAX_BIO))}
+              placeholder="e.g. Fullstack dev who loves hackathons and building real stuff."
+              rows={5}
+              className={cn(
+                "w-full resize-none rounded-md border bg-background p-3 text-sm",
+                "border-border focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground",
+              )}
+            />
+            <div className="pointer-events-none absolute bottom-2 right-3 text-xs text-muted-foreground">
+              {bio.length}/{MAX_BIO}
+            </div>
+          </div>
+        </div>
+
+        {/* Role */}
+        <div className="mt-6">
+          <label className="mb-2 block text-sm text-muted-foreground">Choose your main role</label>
+          <select
+            value={role}
+            onChange={(e) => setRole(e.target.value)}
+            className={cn(
+              "w-full rounded-md border bg-background p-2.5 text-sm",
+              "border-border focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground",
+            )}
+          >
+            <option value="">Select a role</option>
+            {ROLES.map((r) => (
+              <option key={r} value={r}>
+                {r}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Social links */}
+        <div className="mt-6 grid gap-4 md:grid-cols-2">
+          <div className="flex flex-col gap-2">
+            <label className="text-sm text-muted-foreground">GitHub URL (optional)</label>
+            <Input
+              type="url"
+              placeholder="https://github.com/username"
+              value={github}
+              onChange={(e) => setGithub(e.target.value)}
+              className="bg-background border-border focus-visible:ring-1 focus-visible:ring-foreground"
+            />
+          </div>
+          <div className="flex flex-col gap-2">
+            <label className="text-sm text-muted-foreground">Portfolio/LinkedIn (optional)</label>
+            <Input
+              type="url"
+              placeholder="https://yourportfolio.com"
+              value={portfolio}
+              onChange={(e) => setPortfolio(e.target.value)}
+              className="bg-background border-border focus-visible:ring-1 focus-visible:ring-foreground"
+            />
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="mt-10 flex items-center justify-between">
+          <Button variant="outline" asChild>
+            <Link href="/onboarding/skills">Back</Link>
+          </Button>
+          <div className="flex items-center gap-2">
+            <Button asChild>
+              <Link href="/">Finish Setup</Link>
+            </Button>
+          </div>
+        </div>
+      </section>
+    </main>
+  )
+}
