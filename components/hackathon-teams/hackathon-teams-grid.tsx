@@ -86,7 +86,7 @@ export default function HackathonTeamsGrid() {
             <select
               value={role}
               onChange={(e) => setRole(e.target.value)}
-              className="rounded-md border border-border bg-background px-3 py-2 text-sm font-sans"
+              className="rounded-md border border-border bg-background px-3 py-2 text-sm font-mono"
             >
               <option>All</option>
               <option>Frontend</option>

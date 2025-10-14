@@ -25,8 +25,11 @@ export default function HackathonTeamCard({
   return (
     <article
       className={cn(
+        "group relative overflow-hidden", //
         "rounded-xl border border-border bg-background/60 backdrop-blur supports-[backdrop-filter]:bg-background/50",
         "p-5 md:p-6 transition-all hover:shadow-lg hover:shadow-black/10",
+        "before:content-[''] before:absolute before:inset-0 before:rounded-[inherit] before:bg-gradient-to-br before:from-primary/15 before:via-primary/5 before:to-transparent before:opacity-0 group-hover:before:opacity-100 before:transition-opacity",
+        "after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-gradient-to-br after:from-purple-100/10 after:via-purple-100/5 after:to-transparent after:opacity-0 group-hover:after:opacity-100 after:transition-opacity",
         className,
       )}
       aria-label={team.teamName}

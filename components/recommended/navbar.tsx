@@ -37,14 +37,14 @@ export function RecommendedNavbar({ query, onQueryChange, filter, filters, onFil
             value={filter}
             onChange={(e) => onFilterChange(e.target.value)}
             className={cn(
-              "rounded-md border bg-background p-2 text-sm",
+              "rounded-md border bg-background p-2 text-sm font-mono", // enforce JetBrains Mono
               "border-border focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground",
             )}
             aria-label="Filter by skill"
             title="Filter by skill"
           >
             {filters.map((f) => (
-              <option key={f} value={f}>
+              <option key={f} value={f} className="font-mono">
                 {f === "all" ? "All Skills" : f}
               </option>
             ))}
