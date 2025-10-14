@@ -1,5 +1,6 @@
 import ProjectsGrid from "@/components/projects/projects-grid"
 import { Navbar } from "@/components/navbar"
+import SidePanel from "@/components/side-panel" // add side panel
 
 export default function ProjectsPage() {
   return (
@@ -15,7 +16,15 @@ export default function ProjectsPage() {
               </p>
             </div>
           </header>
-          <ProjectsGrid />
+
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
+            <div>
+              <ProjectsGrid />
+            </div>
+            <aside className="block mt-6 lg:mt-0">
+              <SidePanel className="lg:sticky lg:top-[5rem]" />
+            </aside>
+          </div>
         </section>
       </main>
     </>

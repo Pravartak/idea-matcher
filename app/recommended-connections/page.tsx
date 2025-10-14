@@ -4,6 +4,7 @@ import { useMemo, useState } from "react"
 import { RecommendedNavbar } from "@/components/recommended/navbar"
 import { RecommendedConnectionsGrid } from "@/components/recommended/recommended-connections-grid"
 import { Navbar } from "@/components/navbar"
+import SidePanel from "@/components/side-panel" // add side panel
 
 // Mock users dataset. Replace with real data later.
 export type User = {
@@ -79,7 +80,7 @@ export default function RecommendedConnectionsPage() {
 
   return (
     <>
-      {/* Add the site Navbar on Recommended Connections page */}
+      {/* site Navbar */}
       <Navbar />
       <main className="min-h-dvh bg-background text-foreground">
         <RecommendedNavbar
@@ -91,12 +92,22 @@ export default function RecommendedConnectionsPage() {
         />
 
         <section className="mx-auto w-full max-w-6xl px-4 pb-16 pt-6 md:pt-8">
-          <div className="mb-6 md:mb-8">
-            <h1 className="text-2xl md:text-3xl font-semibold text-pretty">Recommended Connections</h1>
-            <p className="text-sm text-muted-foreground mt-1">Discover people who match your interests and skills.</p>
-          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
+            <div>
+              <div className="mb-6 md:mb-8">
+                <h1 className="text-2xl md:text-3xl font-semibold text-pretty">Recommended Connections</h1>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Discover people who match your interests and skills.
+                </p>
+              </div>
 
-          <RecommendedConnectionsGrid users={filteredUsers} onConnect={handleConnect} />
+              <RecommendedConnectionsGrid users={filteredUsers} onConnect={handleConnect} />
+            </div>
+
+            <aside className="block mt-6 lg:mt-0">
+              <SidePanel className="lg:sticky lg:top-[5rem]" />
+            </aside>
+          </div>
         </section>
       </main>
     </>
