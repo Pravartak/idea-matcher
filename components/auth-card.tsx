@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useRouter } from "next/navigation"
-import { createUserWithEmailAndPassword } from "firebase/auth";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 
 type Mode = "login" | "signup"
@@ -22,9 +22,19 @@ export function AuthCard({ initialMode = "login" }: { initialMode?: Mode }) {
   async function handleSignup() {
     try {
       await createUserWithEmailAndPassword(auth, email, password);
-      alert("✅ Account created!");
+      // Redirect to complete profile after signup
+      router.push("/profile/complete");
     } catch (err: any) {
       alert(err.message);
+    }
+  }
+
+  async function handleLogin() {
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      router.push("/dashboard"); // Redirect to a dashboard or home page after login
+    } catch (error: any) {
+      alert(error.message);
     }
   }
 
@@ -125,7 +135,7 @@ export function AuthCard({ initialMode = "login" }: { initialMode?: Mode }) {
 
           <Button
             type="button"
-            onClick={() => router.push("/profile/complete")}
+            onClick={isLogin ? handleLogin : handleSignup}
             className="
               w-full
               font-semibold
@@ -136,7 +146,7 @@ export function AuthCard({ initialMode = "login" }: { initialMode?: Mode }) {
             "
             size="lg"
           >
-            Continue
+            {isLogin ? "Log in" : "Create Account"}
           </Button>
 
           <div className="relative my-2">
