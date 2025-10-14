@@ -5,12 +5,26 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import { auth } from "@/lib/firebase";
 
 type Mode = "login" | "signup"
 
 export function AuthCard({ initialMode = "login" }: { initialMode?: Mode }) {
   const [mode, setMode] = React.useState<Mode>(initialMode)
   const isLogin = mode === "login"
+  const [email, setEmail] = React.useState("")
+  const [password, setPassword] = React.useState("")
+  const [name, setName] = React.useState("")
+
+  async function handleSignup() {
+    try {
+      await createUserWithEmailAndPassword(auth, email, password);
+      alert("✅ Account created!");
+    } catch (err: any) {
+      alert(err.message);
+    }
+  }
 
   return (
     <div className="w-full max-w-[420px]">
@@ -50,6 +64,8 @@ export function AuthCard({ initialMode = "login" }: { initialMode?: Mode }) {
               "
               aria-label="Email"
               autoComplete="email"
+              onChange={(e) => setEmail(e.target.value)}
+              required
             />
           </div>
 
@@ -70,6 +86,8 @@ export function AuthCard({ initialMode = "login" }: { initialMode?: Mode }) {
                 "
                 aria-label="Name"
                 autoComplete="name"
+                onChange={(e) => setName(e.target.value)}
+                required
               />
             </div>
           )}
@@ -98,6 +116,8 @@ export function AuthCard({ initialMode = "login" }: { initialMode?: Mode }) {
               "
               aria-label="Password"
               autoComplete={isLogin ? "current-password" : "new-password"}
+              onChange={(e) => setPassword(e.target.value)}
+              required
             />
           </div>
 
