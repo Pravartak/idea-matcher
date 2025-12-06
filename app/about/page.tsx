@@ -1,11 +1,11 @@
-import { Header } from "@/components/header"
+import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { Users, Target, Zap, Heart } from "lucide-react"
 
 export default function AboutPage() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <Header />
+      <Navbar />
 
       <main className="flex-1">
         {/* Hero Section */}
