@@ -6,8 +6,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useRouter } from "next/navigation"
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
+import { createUserWithEmailAndPassword, getAuth, signInWithEmailAndPassword, signInWithPopup } from "firebase/auth";
+import { GithubAuthProvider } from "firebase/auth";
 import { auth } from "@/lib/firebase";
+import { error } from "console"
 
 type Mode = "login" | "signup"
 
@@ -32,10 +34,50 @@ export function AuthCard({ initialMode = "login" }: { initialMode?: Mode }) {
   async function handleLogin() {
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      router.push("/dashboard"); // Redirect to a dashboard or home page after login
+      router.push("/"); // Redirect to a dashboard or home page after login
     } catch (error: any) {
       alert(error.message);
     }
+  }
+
+  async function githubSignup() {
+    const auth = getAuth();
+    const provider = new GithubAuthProvider();
+    signInWithPopup(auth, provider)
+    .then((result) => {
+      const credential = GithubAuthProvider.credentialFromResult(result);
+      const token = credential?.accessToken;
+      const user = result.user;
+      localStorage.setItem("user", JSON.stringify(user));
+      router.push("/"); // Redirect to a dashboard or home page after login
+    })
+    .catch((error) => {
+      const errorCode = error.code;
+      const errorMessage = error.message;
+      const email = error.customData.email;
+      const credential = GithubAuthProvider.credentialFromError(error);
+      alert(errorMessage);
+    })
+  }
+
+  async function githubLogin() {
+    const authInstance = getAuth();
+    const provider = new GithubAuthProvider();
+    signInWithPopup(authInstance, provider)
+    .then((result) => {
+      const credential = GithubAuthProvider.credentialFromResult(result);
+      const token = credential?.accessToken;
+      const user = result.user;
+      localStorage.setItem("user", JSON.stringify(user));
+      router.push("/"); // Redirect to a dashboard or home page after login
+    })
+    .catch((error) => {
+      const errorCode = error.code;
+      const errorMessage = error.message;
+      const email = error.customData.email;
+      const credential = GithubAuthProvider.credentialFromError(error);
+      alert(errorMessage);
+    })
   }
 
   return (
@@ -170,6 +212,7 @@ export function AuthCard({ initialMode = "login" }: { initialMode?: Mode }) {
                 hover:shadow-[0_0_0_1px_rgba(255,255,255,0.06),0_8px_24px_rgba(99,102,241,0.25)]
                 transition
               "
+              onClick={isLogin ? githubLogin : githubSignup}
             >
               <GitHubIcon className="mr-2 size-4" />
               <span className="truncate">Sign {isLogin ? "in" : "up"} with GitHub</span>
@@ -206,7 +249,7 @@ export function AuthCard({ initialMode = "login" }: { initialMode?: Mode }) {
       <div className="mt-4 text-center text-sm text-muted-foreground">
         {isLogin ? (
           <span>
-            Don’t have an account?{" "}
+            Don't have an account?{" "}
             <button
               onClick={() => setMode("signup")}
               className="font-medium text-foreground underline underline-offset-4 hover:text-primary"
