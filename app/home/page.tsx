@@ -432,7 +432,7 @@ function PostCard({ post }: { post: Post }) {
 export default function FeedPage() {
 	const [sidebarExpanded, setSidebarExpanded] = useState(false);
 
-	const username = localStorage.getItem("username");
+	const username = typeof window !== 'undefined' ? localStorage.getItem("username") : null;
 	const [avatar, setAvatar] = useState<string | null>(null);
 	const [name, setName] = useState<string | null>(null);
 	getUserDetails();
