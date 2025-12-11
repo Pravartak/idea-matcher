@@ -9,7 +9,8 @@ import { useRouter } from "next/navigation"
 import { createUserWithEmailAndPassword, getAuth, signInWithEmailAndPassword, signInWithPopup } from "firebase/auth";
 import { GithubAuthProvider } from "firebase/auth";
 import { auth } from "@/lib/firebase";
-import { error } from "console"
+import { collection, addDoc, query, where, getDocs } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
 type Mode = "login" | "signup"
 
@@ -19,13 +20,13 @@ export function AuthCard({ initialMode = "login" }: { initialMode?: Mode }) {
   const router = useRouter()
   const [email, setEmail] = React.useState("")
   const [password, setPassword] = React.useState("")
-  const [name, setName] = React.useState("")
+  const [userId, setUserId] = React.useState("")
 
   async function handleSignup() {
     try {
       await createUserWithEmailAndPassword(auth, email, password);
       // Redirect to complete profile after signup
-      router.push("/profile/complete");
+      router.push("/onboarding/profile");
     } catch (err: any) {
       alert(err.message);
     }
@@ -40,36 +41,46 @@ export function AuthCard({ initialMode = "login" }: { initialMode?: Mode }) {
     }
   }
 
-  async function githubSignup() {
+  // async function githubSignup() {
+  //   const auth = getAuth();
+  //   const provider = new GithubAuthProvider();
+  //   signInWithPopup(auth, provider)
+  //   .then((result) => {
+  //     // const credential = GithubAuthProvider.credentialFromResult(result);
+  //     const userName = result.user.displayName;
+  //     const userID = result.user.uid;
+  //     localStorage.setItem("user", JSON.stringify(userID));
+  //     router.push("/onboarding/profile"); // Redirect to profile completion after signup
+  //   })
+  //   .catch((error) => {
+  //     const errorCode = error.code;
+  //     const errorMessage = error.message;
+  //     const email = error.customData.email;
+  //     const credential = GithubAuthProvider.credentialFromError(error);
+  //     alert(errorMessage);
+  //   })
+  // }
+
+  async function githubLogin() {
     const auth = getAuth();
     const provider = new GithubAuthProvider();
     signInWithPopup(auth, provider)
-    .then((result) => {
+    .then(async (result) => {
       const credential = GithubAuthProvider.credentialFromResult(result);
       const token = credential?.accessToken;
-      const user = result.user;
-      localStorage.setItem("user", JSON.stringify(user));
-      router.push("/"); // Redirect to a dashboard or home page after login
-    })
-    .catch((error) => {
-      const errorCode = error.code;
-      const errorMessage = error.message;
-      const email = error.customData.email;
-      const credential = GithubAuthProvider.credentialFromError(error);
-      alert(errorMessage);
-    })
-  }
+      const firebaseUid = result.user.uid;
+      
+      const userRef = collection(db, "users");
+      const q = query(userRef, where("firebaseUid", "==", firebaseUid));
+      const snapshot =  await getDocs(q);
 
-  async function githubLogin() {
-    const authInstance = getAuth();
-    const provider = new GithubAuthProvider();
-    signInWithPopup(authInstance, provider)
-    .then((result) => {
-      const credential = GithubAuthProvider.credentialFromResult(result);
-      const token = credential?.accessToken;
-      const user = result.user;
-      localStorage.setItem("user", JSON.stringify(user));
-      router.push("/"); // Redirect to a dashboard or home page after login
+      if(snapshot.empty) {
+        // New user, redirect to profile completion
+        router.push("/onboarding/profile");
+        localStorage.setItem("user", JSON.stringify(result.user));
+      } else {
+        router.push("/home"); // Redirect to a dashboard or home page after login
+      }
     })
     .catch((error) => {
       const errorCode = error.code;
@@ -103,21 +114,21 @@ export function AuthCard({ initialMode = "login" }: { initialMode?: Mode }) {
         <CardContent className="space-y-4">
           <div className="grid gap-2">
             <Label htmlFor="email" className="text-sm">
-              Email
+              {isLogin ? "Email or User ID" : "Email"}
             </Label>
             <Input
               id="email"
-              type="email"
-              inputMode="email"
-              placeholder="you@example.com"
+              type={isLogin ? "text" : "email"}
+              inputMode={isLogin ? "text" : "email"}
+              placeholder={isLogin ? "you@example.com or your-id" : "you@example.com"}
               className="
                 bg-background/60
                 border border-border
                 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background
                 transition
               "
-              aria-label="Email"
-              autoComplete="email"
+              aria-label={isLogin ? "Email or User ID" : "Email"}
+              autoComplete={isLogin ? "username" : "email"}
               onChange={(e) => setEmail(e.target.value)}
               required
             />
@@ -125,22 +136,22 @@ export function AuthCard({ initialMode = "login" }: { initialMode?: Mode }) {
 
           {!isLogin && (
             <div className="grid gap-2">
-              <Label htmlFor="name" className="text-sm">
-                Name
+              <Label htmlFor="userId" className="text-sm">
+                User ID
               </Label>
               <Input
-                id="name"
+                id="userId"
                 type="text"
-                placeholder="Your name"
+                placeholder="your-unique-id"
                 className="
                   bg-background/60
                   border border-border
                   focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background
                   transition
                 "
-                aria-label="Name"
-                autoComplete="name"
-                onChange={(e) => setName(e.target.value)}
+                aria-label="User ID"
+                autoComplete="username"
+                onChange={(e) => setUserId(e.target.value)}
                 required
               />
             </div>
@@ -212,10 +223,10 @@ export function AuthCard({ initialMode = "login" }: { initialMode?: Mode }) {
                 hover:shadow-[0_0_0_1px_rgba(255,255,255,0.06),0_8px_24px_rgba(99,102,241,0.25)]
                 transition
               "
-              onClick={isLogin ? githubLogin : githubSignup}
+              onClick={githubLogin}
             >
               <GitHubIcon className="mr-2 size-4" />
-              <span className="truncate">Sign {isLogin ? "in" : "up"} with GitHub</span>
+              <span className="truncate">Sign in with GitHub</span>
             </Button>
             <Button
               variant="secondary"
@@ -228,7 +239,7 @@ export function AuthCard({ initialMode = "login" }: { initialMode?: Mode }) {
               "
             >
               <GoogleIcon className="mr-2 size-4" />
-              <span className="truncate">Sign {isLogin ? "in" : "up"} with Google</span>
+              <span className="truncate">Sign in with Google</span>
             </Button>
           </div>
 

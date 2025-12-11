@@ -19,19 +19,22 @@ export function Hero() {
             "Idea Matcher helps students and indie builders connect with collaborators who share similar interests, skills, and project goals."
           }
         </p>
-        <div className="mt-8 flex items-center justify-center gap-4">
-          <Link
-            href="/signup"
-            className="rounded-md bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-sm transition-all hover:translate-y-[-1px] hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-ring"
-          >
-            Start Matching
-          </Link>
-          <Link
-            href="/about"
-            className="rounded-md border border-border px-5 py-3 text-sm font-medium text-foreground/90 transition-colors hover:bg-card"
-          >
-            Learn More
-          </Link>
+        <div className="mt-8 flex flex-col items-center justify-center gap-4">
+          <div className="flex items-center justify-center gap-4">
+            <Link
+              href="/signup"
+              className="rounded-md bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-sm transition-all hover:translate-y-[-1px] hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-ring"
+            >
+              Start Matching
+            </Link>
+            <Link
+              href="/about"
+              className="rounded-md border border-border px-5 py-3 text-sm font-medium text-foreground/90 transition-colors hover:bg-card"
+            >
+              Learn More
+            </Link>
+          </div>
+          <p className="text-xs text-muted-foreground">Create your profile and find collaborators instantly.</p>
         </div>
       </div>
     </section>
