@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
 	Home,
@@ -431,8 +431,12 @@ function PostCard({ post }: { post: Post }) {
 
 export default function FeedPage() {
 	const [sidebarExpanded, setSidebarExpanded] = useState(false);
+	const [username, setUsername] = useState<string | null>(null);
 
-	const username = typeof window !== 'undefined' ? localStorage.getItem("username") : null;
+	useEffect(() => {
+		const storedUsername = localStorage.getItem("username");
+		setUsername(storedUsername);
+	})
 	const [avatar, setAvatar] = useState<string | null>(null);
 	const [name, setName] = useState<string | null>(null);
 	getUserDetails();
