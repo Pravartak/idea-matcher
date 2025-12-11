@@ -3,7 +3,7 @@
 import type React from "react";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -44,7 +44,12 @@ export default function SkillsPage() {
 	const [options, setOptions] = useState<string[]>(DEFAULT_SKILLS);
 	const [custom, setCustom] = useState("");
 	const [isSubmitting, setIsSubmitting] = useState(false);
-	const username = localStorage.getItem("username");
+	const [username, setUsername] = useState<string | null>(null);
+
+	useEffect(() => {
+		const storedUsername = localStorage.getItem("username");
+		setUsername(storedUsername);
+	});
 
 	function toggleSkill(s: string) {
 		setSkills((prev) =>

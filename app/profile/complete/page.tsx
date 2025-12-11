@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/utils"; // Assuming a utils file, or define it locally
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { db } from "@/lib/firebase"; // Assuming you have this config file
 import { doc, updateDoc } from "firebase/firestore";
@@ -30,7 +30,12 @@ export default function ProfileCompletePage() {
 	const [selected, setSelected] = useState<string[]>([]);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const router = useRouter();
-	const username = localStorage.getItem("username");
+	const [username, setUsername] = useState<string | null>(null);
+
+	useEffect(() => {
+		const storedUsername = localStorage.getItem("username");
+		setUsername(storedUsername);
+	});
 
 	function toggleInterest(tag: string) {
 		setSelected((prev) =>
