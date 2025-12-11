@@ -434,23 +434,29 @@ export default function FeedPage() {
 	const [username, setUsername] = useState<string | null>(null);
 
 	useEffect(() => {
-		const storedUsername = localStorage.getItem("username");
-		setUsername(storedUsername);
-	})
+		if (typeof window !== "undefined") {
+			const stored = localStorage.getItem("username");
+			setUsername(stored);
+		}
+	}, []);
 	const [avatar, setAvatar] = useState<string | null>(null);
 	const [name, setName] = useState<string | null>(null);
-	getUserDetails();
 
-	async function getUserDetails() {
-		const docRef = username ? doc(db, "users", username) : null;
-		const docSnap = docRef ? await getDoc(docRef) : null;
+	useEffect(() => {
+		if (!username) return;
 
-		const avatarUrl = docSnap ? await docSnap.get("Avatar") : null;
-		const displayName = docSnap ? await docSnap.get("Name") : null;
+		async function fetchData() {
+			const docRef = username ? doc(db, "users", username) : null;
+			const docSnap = docRef ? await getDoc(docRef) : null;
 
-		setAvatar(avatarUrl);
-		setName(displayName);
-	}
+			if (docSnap && docSnap.exists()) {
+				setAvatar(docSnap.get("Avatar"));
+				setName(docSnap.get("Name"));
+			}
+		}
+
+		fetchData();
+	}, [username]);
 
 	return (
 		<div className="min-h-screen bg-background flex">
