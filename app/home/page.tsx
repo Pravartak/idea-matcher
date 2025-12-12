@@ -434,7 +434,7 @@ function PostCard({ post }: { post: Post }) {
 export default function FeedPage() {
 	const [sidebarExpanded, setSidebarExpanded] = useState(false);
 	const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-	const [username, setUsername] = useState<string | null>(null);
+	const [username, setUsername] = useState<string | null | undefined>(undefined);
 	const router = useRouter();
 
 	useEffect(() => {
@@ -444,11 +444,11 @@ export default function FeedPage() {
 		}
 	}, []);
 
-	window.onload = () => {
-		if(username == null) {
-			router.push("/signup");
-		}
-	}
+	useEffect(() => {
+		if (username === undefined) return; // still loading
+		if (username === null) router.push("/signup");
+	}, [username]);
+
 	const [avatar, setAvatar] = useState<string | null>(null);
 	const [name, setName] = useState<string | null>(null);
 
@@ -503,7 +503,9 @@ export default function FeedPage() {
 				className={`fixed left-0 top-0 h-full bg-sidebar border-r border-sidebar-border p-4 flex flex-col z-40 transition-all duration-300 ${
 					sidebarExpanded ? "md:w-64" : "md:w-16"
 				} w-64 ${
-					mobileMenuOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+					mobileMenuOpen
+						? "translate-x-0"
+						: "-translate-x-full md:translate-x-0"
 				}`}>
 				<div className="flex items-center justify-between mb-8">
 					<button
