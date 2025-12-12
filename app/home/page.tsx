@@ -30,6 +30,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { db } from "@/lib/firebase";
 import { doc, getDoc } from "firebase/firestore";
+import { useRouter } from "next/navigation";
 
 const navItems = [
 	{ icon: Home, label: "Home", href: "/home", active: true },
@@ -434,6 +435,7 @@ export default function FeedPage() {
 	const [sidebarExpanded, setSidebarExpanded] = useState(false);
 	const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 	const [username, setUsername] = useState<string | null>(null);
+	const router = useRouter();
 
 	useEffect(() => {
 		if (typeof window !== "undefined") {
@@ -441,6 +443,12 @@ export default function FeedPage() {
 			setUsername(stored);
 		}
 	}, []);
+
+	window.onload = () => {
+		if(username == null) {
+			router.push("/signup");
+		}
+	}
 	const [avatar, setAvatar] = useState<string | null>(null);
 	const [name, setName] = useState<string | null>(null);
 
@@ -586,7 +594,7 @@ export default function FeedPage() {
 									{name || "Your Name"}
 								</p>
 								<p className="font-mono text-xs text-muted-foreground truncate">
-									@{username || "username"}
+									{username || "username"}
 								</p>
 							</div>
 						)}
