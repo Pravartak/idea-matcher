@@ -1,7 +1,7 @@
 "use client"
 
 import { UserCard } from "./user-card"
-import type { User } from "@/app/recommended-connections/page"
+import type { User } from "@/app/connections/page"
 
 type Props = {
   users: User[]

@@ -24,6 +24,7 @@ import {
 	ChevronRight,
 	Menu,
 	MessageSquare,
+	X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -431,6 +432,7 @@ function PostCard({ post }: { post: Post }) {
 
 export default function FeedPage() {
 	const [sidebarExpanded, setSidebarExpanded] = useState(false);
+	const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 	const [username, setUsername] = useState<string | null>(null);
 
 	useEffect(() => {
@@ -458,16 +460,47 @@ export default function FeedPage() {
 		fetchData();
 	}, [username]);
 
+	useEffect(() => {
+		const handleResize = () => {
+			if (window.innerWidth >= 768) {
+				setMobileMenuOpen(false);
+			}
+		};
+		window.addEventListener("resize", handleResize);
+		return () => window.removeEventListener("resize", handleResize);
+	}, []);
+
+	useEffect(() => {
+		if (mobileMenuOpen) {
+			document.body.style.overflow = "hidden";
+		} else {
+			document.body.style.overflow = "";
+		}
+		return () => {
+			document.body.style.overflow = "";
+		};
+	}, [mobileMenuOpen]);
+
+	const showSidebarText = sidebarExpanded || mobileMenuOpen;
+
 	return (
 		<div className="min-h-screen bg-background flex">
+			{mobileMenuOpen && (
+				<div
+					className="fixed inset-0 bg-black/50 z-30 md:hidden"
+					onClick={() => setMobileMenuOpen(false)}
+				/>
+			)}
 			<aside
-				className={`fixed left-0 top-0 h-full bg-sidebar border-r border-sidebar-border p-4 flex flex-col z-20 transition-all duration-300 ${
-					sidebarExpanded ? "w-64" : "w-16"
+				className={`fixed left-0 top-0 h-full bg-sidebar border-r border-sidebar-border p-4 flex flex-col z-40 transition-all duration-300 ${
+					sidebarExpanded ? "md:w-64" : "md:w-16"
+				} w-64 ${
+					mobileMenuOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
 				}`}>
 				<div className="flex items-center justify-between mb-8">
 					<button
 						onClick={() => setSidebarExpanded(!sidebarExpanded)}
-						className={`flex items-center gap-3 p-2 rounded-lg hover:bg-sidebar-accent transition-colors ${
+						className={`hidden md:flex items-center gap-3 p-2 rounded-lg hover:bg-sidebar-accent transition-colors ${
 							sidebarExpanded ? "" : "w-full justify-center"
 						}`}>
 						<Menu className="w-5 h-5 text-foreground flex-shrink-0" />
@@ -477,6 +510,16 @@ export default function FeedPage() {
 							</span>
 						)}
 					</button>
+					<div className="flex md:hidden items-center justify-between w-full">
+						<span className="font-mono text-xl font-bold text-foreground">
+							IdeaMatcher_
+						</span>
+						<button
+							onClick={() => setMobileMenuOpen(false)}
+							className="p-2 rounded-lg hover:bg-sidebar-accent transition-colors">
+							<X className="w-5 h-5 text-foreground" />
+						</button>
+					</div>
 				</div>
 
 				<nav className="flex-1 space-y-1">
@@ -484,14 +527,15 @@ export default function FeedPage() {
 						<Link
 							key={item.label}
 							href={item.href}
+							onClick={() => setMobileMenuOpen(false)}
 							className={`flex items-center gap-3 px-3 py-3 rounded-lg font-mono text-sm transition-colors ${
 								item.active
 									? "bg-sidebar-accent text-foreground"
 									: "text-muted-foreground hover:bg-sidebar-accent hover:text-foreground"
-							} ${!sidebarExpanded ? "justify-center" : ""}`}
-							title={!sidebarExpanded ? item.label : undefined}>
+							} ${!showSidebarText ? "justify-center" : ""}`}
+							title={!showSidebarText ? item.label : undefined}>
 							<item.icon className="w-5 h-5 flex-shrink-0" />
-							{sidebarExpanded && (
+							{showSidebarText && (
 								<span className="whitespace-nowrap">{item.label}</span>
 							)}
 						</Link>
@@ -503,18 +547,19 @@ export default function FeedPage() {
 						<Link
 							key={item.label}
 							href={item.href}
+							onClick={() => setMobileMenuOpen(false)}
 							className={`flex items-center gap-3 px-3 py-3 rounded-lg font-mono text-sm text-muted-foreground hover:bg-sidebar-accent hover:text-foreground transition-colors relative ${
-								!sidebarExpanded ? "justify-center" : ""
+								!showSidebarText ? "justify-center" : ""
 							}`}
-							title={!sidebarExpanded ? item.label : undefined}>
+							title={!showSidebarText ? item.label : undefined}>
 							<item.icon className="w-5 h-5 flex-shrink-0" />
-							{sidebarExpanded && (
+							{showSidebarText && (
 								<span className="whitespace-nowrap">{item.label}</span>
 							)}
 							{item.badge && (
 								<span
 									className={`w-2 h-2 bg-blue-500 rounded-full ${
-										sidebarExpanded
+										showSidebarText
 											? "absolute right-3"
 											: "absolute top-2 right-2"
 									}`}
@@ -528,14 +573,14 @@ export default function FeedPage() {
 					<Link
 						href="/profile"
 						className={`flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-sidebar-accent transition-colors ${
-							!sidebarExpanded ? "justify-center" : ""
+							!showSidebarText ? "justify-center" : ""
 						}`}
-						title={!sidebarExpanded ? "Your Profile" : undefined}>
+						title={!showSidebarText ? "Your Profile" : undefined}>
 						<Avatar className="w-9 h-9 flex-shrink-0">
 							<AvatarImage src={avatar ? avatar : "/user-profile-avatar.png"} />
 							<AvatarFallback className="font-mono">U</AvatarFallback>
 						</Avatar>
-						{sidebarExpanded && (
+						{showSidebarText && (
 							<div className="flex-1 min-w-0">
 								<p className="font-mono text-sm font-medium text-foreground truncate">
 									{name || "Your Name"}
@@ -551,17 +596,23 @@ export default function FeedPage() {
 
 			<main
 				className={`flex-1 transition-all duration-300 ${
-					sidebarExpanded ? "ml-64" : "ml-16"
-				}`}>
+					sidebarExpanded ? "md:ml-64" : "md:ml-16"
+				} ml-0`}>
 				{/* Top Header */}
-				<header className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm border-b border-border px-6 py-4 flex justify-center">
+				<header className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm border-b border-border px-6 py-4 flex items-center justify-between md:justify-center">
+					<button
+						className="md:hidden p-2 -ml-2 hover:bg-accent rounded-md"
+						onClick={() => setMobileMenuOpen(true)}>
+						<Menu className="w-5 h-5" />
+					</button>
 					<span className="font-mono text-xl font-bold text-foreground">
 						IdeaMatcher_
 					</span>
+					<div className="w-9 md:hidden" />
 				</header>
 
 				{/* Feed */}
-				<div className="p-6 space-y-4 max-w-2xl mx-auto">
+				<div className="p-4 md:p-6 space-y-4 max-w-2xl mx-auto">
 					{samplePosts.map((post) => (
 						<PostCard key={post.id} post={post} />
 					))}

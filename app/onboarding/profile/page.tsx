@@ -28,6 +28,7 @@ export default function ProfileSetupPage() {
 	const userData = typeof window !== "undefined" ? localStorage.getItem("user") : null;
 	const user = userData ? JSON.parse(userData) : null;
 	const [avatarUrl, setAvatarUrl] = useState<string | null>(user?.photoURL || null);
+	const [name, setName] = useState(user?.displayName || "");
 	const [username, setUsername] = useState("");
 	const [bio, setBio] = useState("");
 	const [role, setRole] = useState<string>("");
@@ -44,8 +45,8 @@ export default function ProfileSetupPage() {
 	}
 
 	async function handleContinue() {
-		if (!username.trim() || !bio.trim() || !role) {
-			alert("Please fill out all required fields: Username, Bio, and Role.");
+		if (!username.trim() || !bio.trim() || !role || !name.trim()) {
+			alert("Please fill out all required fields: Name, Username, Bio, and Role.");
 			return;
 		} else {
 			const usernameRef = doc(db, "users", username);
@@ -57,7 +58,7 @@ export default function ProfileSetupPage() {
 				localStorage.setItem("username", username);
 				await setDoc(doc(db, "users", username), {
 					firebaseUid: user.uid,
-					Name: user.displayName || "",
+					Name: name,
 					Email: user.email || "",
 					Avatar: avatarUrl || "",
 					Bio: bio,
@@ -75,8 +76,8 @@ export default function ProfileSetupPage() {
 			{/* Top bar */}
 			<header className="sticky top-0 z-10 border-b border-border bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
 				<div className="mx-auto w-full max-w-3xl px-4 py-3 flex items-center justify-between">
-					<Link href="/" className="font-mono text-sm md:text-base">
-						<span className="font-semibold">Idea Matcher</span>
+					<Link href="#" className="font-mono text-sm md:text-base">
+						<span className="font-semibold">IdeaMatcher_</span>
 					</Link>
 					<div className="text-xs md:text-sm text-muted-foreground">
 						Step 1 of 3
@@ -95,8 +96,8 @@ export default function ProfileSetupPage() {
 				</div>
 
 				{/* Avatar uploader */}
-				<div className="mt-8 flex items-center gap-4">
-					<div className="size-20 md:size-24 rounded-full overflow-hidden border border-border bg-card flex items-center justify-center">
+				<div className="mt-8 flex flex-col md:flex-row items-center gap-4 md:gap-6">
+					<div className="size-24 md:size-28 rounded-full overflow-hidden border border-border bg-card flex items-center justify-center">
 						{avatarUrl ? (
 							// Note: using next/image for optimization; fallback to <img> if necessary.
 							<Image
@@ -122,14 +123,29 @@ export default function ProfileSetupPage() {
 						<Button onClick={() => fileRef.current?.click()}>
 							Upload Photo
 						</Button>
-						<Button variant="ghost" asChild>
-							<Link href="/">Skip for now</Link>
-						</Button>
 					</div>
 				</div>
 
+				{/* Name */}
+				<div className="mt-6 md:mt-8">
+					<label
+						htmlFor="name"
+						className="mb-2 block text-sm text-muted-foreground">
+						Full Name
+					</label>
+					<Input
+						id="name"
+						type="text"
+						placeholder="Your Name"
+						value={name}
+						onChange={(e) => setName(e.target.value)}
+						className="bg-background border-border focus-visible:ring-1 focus-visible:ring-foreground"
+						required
+					/>
+				</div>
+
 				{/* Username */}
-				<div className="mt-8">
+				<div className="mt-4 md:mt-6">
 					<label
 						htmlFor="username"
 						className="mb-2 block text-sm text-muted-foreground">

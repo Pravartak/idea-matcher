@@ -35,7 +35,7 @@ export function AuthCard({ initialMode = "login" }: { initialMode?: Mode }) {
   async function handleLogin() {
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      router.push("/"); // Redirect to a dashboard or home page after login
+      router.push("/home"); // Redirect to a dashboard or home page after login
     } catch (error: any) {
       alert(error.message);
     }

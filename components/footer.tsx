@@ -16,20 +16,12 @@ export function Footer() {
             Terms
           </Link>
           <a
-            href="https://github.com/"
+            href="https://github.com/Pravartak"
             target="_blank"
             rel="noreferrer"
             className="transition-colors hover:text-foreground"
           >
             GitHub
-          </a>
-          <a
-            href="https://twitter.com/"
-            target="_blank"
-            rel="noreferrer"
-            className="transition-colors hover:text-foreground"
-          >
-            Twitter
           </a>
         </nav>
       </div>

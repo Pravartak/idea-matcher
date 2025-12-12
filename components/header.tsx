@@ -3,14 +3,14 @@ import Link from "next/link"
 export function Header() {
   return (
     <header className="flex items-center justify-between px-6 py-4 border-b border-border">
-      <Link href="/" className="font-mono text-lg font-bold text-foreground">
+      <Link href="#" className="font-mono text-lg font-bold text-foreground">
         IdeaMatcher_
       </Link>
       <nav className="hidden md:flex items-center gap-6">
-        <Link href="/" className="font-mono text-sm text-muted-foreground hover:text-foreground transition-colors">
+        <Link href="/home" className="font-mono text-sm text-muted-foreground hover:text-foreground transition-colors">
           Home
         </Link>
-        <Link href="/about" className="font-mono text-sm text-foreground">
+        <Link href="/about" className="font-mono text-sm text-muted-foreground">
           About
         </Link>
         <Link

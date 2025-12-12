@@ -69,8 +69,8 @@ export default function ProfileCompletePage() {
 			{/* Sticky top bar */}
 			<header className="sticky top-0 z-10 border-b border-border bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
 				<div className="mx-auto w-full max-w-3xl px-4 py-3 flex items-center justify-between">
-					<Link href="/" className="font-mono text-sm md:text-base">
-						<span className="font-semibold">Idea Matcher</span>
+					<Link href="#" className="font-mono text-sm md:text-base">
+						<span className="font-semibold">IdeaMatcher_</span>
 					</Link>
 					<div className="text-xs md:text-sm text-muted-foreground">
 						Step 2 of 3
