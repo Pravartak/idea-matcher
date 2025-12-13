@@ -28,9 +28,17 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { db } from "@/lib/firebase";
-import { doc, getDoc } from "firebase/firestore";
+import { auth, db } from "@/lib/firebase";
+import {
+	collection,
+	doc,
+	getDoc,
+	getDocs,
+	query,
+	where,
+} from "firebase/firestore";
 import { useRouter } from "next/navigation";
+import { getAuth, onAuthStateChanged } from "firebase/auth";
 
 const navItems = [
 	{ icon: Home, label: "Home", href: "/home", active: true },
@@ -432,41 +440,67 @@ function PostCard({ post }: { post: Post }) {
 }
 
 export default function FeedPage() {
-	const [sidebarExpanded, setSidebarExpanded] = useState(false);
-	const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-	const [username, setUsername] = useState<string | null | undefined>(undefined);
 	const router = useRouter();
 
-	useEffect(() => {
-		if (typeof window !== "undefined") {
-			const stored = localStorage.getItem("username");
-			setUsername(stored);
-		}
-	}, []);
+	const [sidebarExpanded, setSidebarExpanded] = useState(false);
+	const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-	useEffect(() => {
-		if (username === undefined) return; // still loading
-		if (username === null) router.push("/signup");
-	}, [username]);
-
+	const [username, setUsername] = useState<string | null>(null);
 	const [avatar, setAvatar] = useState<string | null>(null);
 	const [name, setName] = useState<string | null>(null);
 
+	const [loadingUser, setLoadingUser] = useState(true);
+
 	useEffect(() => {
-		if (!username) return;
+		const auth = getAuth();
 
-		async function fetchData() {
-			const docRef = username ? doc(db, "users", username) : null;
-			const docSnap = docRef ? await getDoc(docRef) : null;
+		const unsubscribe = onAuthStateChanged(auth, async (user) => {
+			if (!user) {
+				router.push("/signup");
+				return;
+			}
 
-			if (docSnap && docSnap.exists()) {
+			async function loadUser() {
+				const q = query(
+					collection(db, "users"),
+					where("firebaseUid", "==", auth.currentUser?.uid)
+				);
+
+				const snap = await getDocs(q);
+
+				if (snap.empty) {
+					router.push("/onboarding/profile");
+					return;
+				}
+				const docSnap = snap.docs[0];
+
+				setUsername(docSnap.id);
 				setAvatar(docSnap.get("Avatar"));
 				setName(docSnap.get("Name"));
-			}
-		}
+				setLoadingUser(false);
 
-		fetchData();
-	}, [username]);
+				localStorage.setItem("username", docSnap.id);
+			}
+			loadUser();
+		});
+		return () => unsubscribe();
+	}, []);
+
+	// useEffect(() => {
+	// 	if (!username) return;
+
+	// 	async function fetchData() {
+	// 		const docRef = username ? doc(db, "users", username) : null;
+	// 		const docSnap = docRef ? await getDoc(docRef) : null;
+
+	// 		if (docSnap && docSnap.exists()) {
+	// 			setAvatar(docSnap.get("Avatar"));
+	// 			setName(docSnap.get("Name"));
+	// 		}
+	// 	}
+
+	// 	fetchData();
+	// }, [username]);
 
 	useEffect(() => {
 		const handleResize = () => {
@@ -587,16 +621,16 @@ export default function FeedPage() {
 						}`}
 						title={!showSidebarText ? "Your Profile" : undefined}>
 						<Avatar className="w-9 h-9 flex-shrink-0">
-							<AvatarImage src={avatar ? avatar : "/user-profile-avatar.png"} />
+							<AvatarImage src={avatar ? avatar : undefined} />
 							<AvatarFallback className="font-mono">U</AvatarFallback>
 						</Avatar>
 						{showSidebarText && (
 							<div className="flex-1 min-w-0">
 								<p className="font-mono text-sm font-medium text-foreground truncate">
-									{name || "Your Name"}
+									{name}
 								</p>
 								<p className="font-mono text-xs text-muted-foreground truncate">
-									{username || "username"}
+									{username}
 								</p>
 							</div>
 						)}

@@ -14,7 +14,7 @@ import { db } from "@/lib/firebase";
 
 type Mode = "login" | "signup"
 
-export function AuthCard({ initialMode = "login" }: { initialMode?: Mode }) {
+export function AuthCard({ initialMode = "login" } : { initialMode?: Mode }) {
   const [mode, setMode] = React.useState<Mode>(initialMode)
   const isLogin = mode === "login"
   const router = useRouter()
