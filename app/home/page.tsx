@@ -486,22 +486,6 @@ export default function FeedPage() {
 		return () => unsubscribe();
 	}, []);
 
-	// useEffect(() => {
-	// 	if (!username) return;
-
-	// 	async function fetchData() {
-	// 		const docRef = username ? doc(db, "users", username) : null;
-	// 		const docSnap = docRef ? await getDoc(docRef) : null;
-
-	// 		if (docSnap && docSnap.exists()) {
-	// 			setAvatar(docSnap.get("Avatar"));
-	// 			setName(docSnap.get("Name"));
-	// 		}
-	// 	}
-
-	// 	fetchData();
-	// }, [username]);
-
 	useEffect(() => {
 		const handleResize = () => {
 			if (window.innerWidth >= 768) {

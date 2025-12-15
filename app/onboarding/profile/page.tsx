@@ -4,13 +4,14 @@ import type React from "react";
 
 import Link from "next/link";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
-import { type ChangeEvent, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { db } from "@/lib/firebase";
 import { doc, getDoc, setDoc } from "firebase/firestore";
+import { getAuth, onAuthStateChanged } from "firebase/auth";
+import { useRouter } from "next/navigation";
+import { type ChangeEvent, useRef, useEffect, useState } from "react";
 
 const ROLES = [
 	"Developer",
@@ -24,9 +25,14 @@ const ROLES = [
 
 export default function ProfileSetupPage() {
 	const router = useRouter();
+	const auth = getAuth();
 	const fileRef = useRef<HTMLInputElement>(null);
-	const userData = typeof window !== "undefined" ? localStorage.getItem("user") : null;
+	const userData =
+		typeof window !== "undefined" ? localStorage.getItem("user") : null;
 	const user = userData ? JSON.parse(userData) : null;
+	const [firebaseUid, setFirebaseUid] = useState<string | null>(null);
+	const [email, setEmail] = useState<string | null>(null);
+	const [loadingAuth, setLoadingAuth] = useState(true);
 	const [avatarUrl, setAvatarUrl] = useState<string | null>(user?.photoURL || null);
 	const [name, setName] = useState(user?.displayName || "");
 	const [username, setUsername] = useState("");
@@ -44,9 +50,26 @@ export default function ProfileSetupPage() {
 		setAvatarUrl(url);
 	}
 
+	useEffect(() => {
+		const unsubscribe = onAuthStateChanged(auth, (user) => {
+			if (!user) {
+				router.push("/signup");
+				return;
+			}
+
+			setFirebaseUid(user.uid);
+			setEmail(user.email);
+			setLoadingAuth(false);
+		});
+
+		return () => unsubscribe();
+	}, []);
+
 	async function handleContinue() {
 		if (!username.trim() || !bio.trim() || !role || !name.trim()) {
-			alert("Please fill out all required fields: Name, Username, Bio, and Role.");
+			alert(
+				"Please fill out all required fields: Name, Username, Bio, and Role."
+			);
 			return;
 		} else {
 			const usernameRef = doc(db, "users", username);
@@ -57,15 +80,15 @@ export default function ProfileSetupPage() {
 			} else {
 				localStorage.setItem("username", username);
 				await setDoc(doc(db, "users", username), {
-					firebaseUid: user.uid,
+					firebaseUid: firebaseUid,
 					Name: name,
-					Email: user.email || "",
+					Email: email,
 					Avatar: avatarUrl || "",
 					Bio: bio,
 					Role: role,
 					Github: github,
 					Portfolio: portfolio,
-				})
+				});
 			}
 			router.push("/profile/complete");
 		}

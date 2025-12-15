@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useRouter } from "next/navigation"
-import { createUserWithEmailAndPassword, getAuth, signInWithEmailAndPassword, signInWithPopup } from "firebase/auth";
+import { fetchSignInMethodsForEmail, createUserWithEmailAndPassword, getAuth, GoogleAuthProvider, signInWithEmailAndPassword, signInWithPopup } from "firebase/auth";
 import { GithubAuthProvider } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { collection, addDoc, query, where, getDocs } from "firebase/firestore";
@@ -24,11 +24,28 @@ export function AuthCard({ initialMode = "login" } : { initialMode?: Mode }) {
 
   async function handleSignup() {
     try {
-      await createUserWithEmailAndPassword(auth, email, password);
-      // Redirect to complete profile after signup
-      router.push("/onboarding/profile");
-    } catch (err: any) {
-      alert(err.message);
+      const methods = await fetchSignInMethodsForEmail(auth, email);
+
+      if (methods.includes("github.com")) {
+        alert("This account was created using GitHub. Please sign in with GitHub.");
+        return;
+      }
+
+      if(!methods.includes("password")) {
+        alert("This account does not use email & password login.");
+        return;
+      }
+
+      if(methods.includes("google.com")) {
+        alert("This account was created using Google. Please sign in with Google.");
+        return;
+      }
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      console.log("firebaseUid:", userCredential.user.uid);
+
+      router.push("/onboarding/profile"); // Redirect to complete profile after signup
+    } catch (error: any) {
+      alert(error.message);
     }
   }
 
@@ -40,26 +57,6 @@ export function AuthCard({ initialMode = "login" } : { initialMode?: Mode }) {
       alert(error.message);
     }
   }
-
-  // async function githubSignup() {
-  //   const auth = getAuth();
-  //   const provider = new GithubAuthProvider();
-  //   signInWithPopup(auth, provider)
-  //   .then((result) => {
-  //     // const credential = GithubAuthProvider.credentialFromResult(result);
-  //     const userName = result.user.displayName;
-  //     const userID = result.user.uid;
-  //     localStorage.setItem("user", JSON.stringify(userID));
-  //     router.push("/onboarding/profile"); // Redirect to profile completion after signup
-  //   })
-  //   .catch((error) => {
-  //     const errorCode = error.code;
-  //     const errorMessage = error.message;
-  //     const email = error.customData.email;
-  //     const credential = GithubAuthProvider.credentialFromError(error);
-  //     alert(errorMessage);
-  //   })
-  // }
 
   async function githubLogin() {
     const auth = getAuth();
@@ -91,6 +88,33 @@ export function AuthCard({ initialMode = "login" } : { initialMode?: Mode }) {
     })
   }
 
+  async function googleLogin() {
+    const auth = getAuth();
+    const provider = new GoogleAuthProvider();
+    signInWithPopup(auth, provider)
+    .then(async (result) => {
+      const credential = GoogleAuthProvider.credentialFromResult(result);
+      const token = credential?.accessToken;
+      const firebaseUid = result.user.uid;
+      
+      const userRef = collection(db, "users");
+      const q = query(userRef, where("firebaseUid", "==", firebaseUid));
+      const snapshot =  await getDocs(q);
+
+      if(snapshot.empty) {
+        // New user, redirect to profile completion
+        router.push("/onboarding/profile");
+        localStorage.setItem("user", JSON.stringify(result.user));
+      } else {
+        router.push("/home"); // Redirect to a dashboard or home page after login
+      }
+    })
+    .catch((error) => {
+      const errorMessage = error.message;
+      alert(errorMessage);
+    })
+  }
+
   return (
     <div className="w-full max-w-[420px]">
       <div className="mb-6 text-center">
@@ -118,17 +142,17 @@ export function AuthCard({ initialMode = "login" } : { initialMode?: Mode }) {
             </Label>
             <Input
               id="email"
-              type={isLogin ? "text" : "email"}
-              inputMode={isLogin ? "text" : "email"}
-              placeholder={isLogin ? "you@example.com or your-id" : "you@example.com"}
+              type="email"
+              inputMode="email"
+              placeholder="you@example.com"
               className="
                 bg-background/60
                 border border-border
                 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background
                 transition
               "
-              aria-label={isLogin ? "Email or User ID" : "Email"}
-              autoComplete={isLogin ? "username" : "email"}
+              aria-label="Email"
+              autoComplete="email"
               onChange={(e) => setEmail(e.target.value)}
               required
             />
@@ -237,6 +261,7 @@ export function AuthCard({ initialMode = "login" } : { initialMode?: Mode }) {
                 hover:shadow-[0_8px_24px_rgba(0,0,0,0.15)]
                 transition
               "
+              onClick={googleLogin}
             >
               <GoogleIcon className="mr-2 size-4" />
               <span className="truncate">Sign in with Google</span>
