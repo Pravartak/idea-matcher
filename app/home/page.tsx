@@ -28,11 +28,9 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { auth, db } from "@/lib/firebase";
+import { db } from "@/lib/firebase";
 import {
 	collection,
-	doc,
-	getDoc,
 	getDocs,
 	query,
 	where,
@@ -449,7 +447,7 @@ export default function FeedPage() {
 	const [avatar, setAvatar] = useState<string | null>(null);
 	const [name, setName] = useState<string | null>(null);
 
-	const [loadingUser, setLoadingUser] = useState(true);
+	const [, setLoadingUser] = useState(true);
 
 	useEffect(() => {
 		const auth = getAuth();
