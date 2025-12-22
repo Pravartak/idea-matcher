@@ -38,6 +38,24 @@ const DEFAULT_SKILLS = [
 	"UI Design",
 ];
 
+const SKILL_CATEGORIES = {
+	frontend: [
+		"HTML",
+		"CSS",
+		"JavaScript",
+		"TypeScript",
+		"React",
+		"Next",
+		"Vue",
+		"Angular",
+		"Tailwind CSS",
+		"C",
+		"C++",
+		"Swift",
+		"Kotlin",
+	],
+};
+
 export default function SkillsPage() {
 	const router = useRouter();
 	const [skills, setSkills] = useState<string[]>([]);

@@ -27,12 +27,13 @@ export default function ProfileSetupPage() {
 	const router = useRouter();
 	const auth = getAuth();
 	const fileRef = useRef<HTMLInputElement>(null);
-	const userData =
-		typeof window !== "undefined" ? localStorage.getItem("user") : null;
+	const userData = typeof window !== "undefined" ? localStorage.getItem("user") : null;
 	const user = userData ? JSON.parse(userData) : null;
 	const [firebaseUid, setFirebaseUid] = useState<string | null>(null);
 	const [email, setEmail] = useState<string | null>(null);
 	const [loadingAuth, setLoadingAuth] = useState(true);
+	const [mounted, setMounted] = useState(false);
+
 	const [avatarUrl, setAvatarUrl] = useState<string | null>(user?.photoURL || null);
 	const [name, setName] = useState(user?.displayName || "");
 	const [username, setUsername] = useState("");
@@ -42,6 +43,10 @@ export default function ProfileSetupPage() {
 	const [portfolio, setPortfolio] = useState("");
 
 	const MAX_BIO = 200;
+
+	useEffect(() => {
+		setMounted(true);
+	}, []);
 
 	function onFileChange(e: ChangeEvent<HTMLInputElement>) {
 		const file = e.target.files?.[0];
@@ -121,19 +126,15 @@ export default function ProfileSetupPage() {
 				{/* Avatar uploader */}
 				<div className="mt-8 flex flex-col md:flex-row items-center gap-4 md:gap-6">
 					<div className="size-24 md:size-28 rounded-full overflow-hidden border border-border bg-card flex items-center justify-center">
-						{avatarUrl ? (
-							// Note: using next/image for optimization; fallback to <img> if necessary.
-							<Image
-								src={avatarUrl || "/placeholder.svg"}
-								alt="Profile preview"
-								width={96}
-								height={96}
-								className="h-full w-full object-cover"
-								unoptimized
-							/>
-						) : (
-							<span className="text-xs text-muted-foreground">No Photo</span>
-						)}
+						{/* Note: using next/image for optimization; fallback to <img> if necessary. */}
+						<Image
+							src={mounted ? avatarUrl ?? "/placeholder.svg" : "/placeholder.svg"}
+							alt="Profile preview"
+							width={96}
+							height={96}
+							className="h-full w-full object-cover"
+							unoptimized
+						/>
 					</div>
 					<div className="flex items-center gap-2">
 						<input

@@ -150,6 +150,7 @@ export function AuthCard({ initialMode = "login" } : { initialMode?: Mode }) {
                 border border-border
                 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background
                 transition
+                text-base md:text-sm
               "
               aria-label="Email"
               autoComplete="email"
@@ -172,6 +173,7 @@ export function AuthCard({ initialMode = "login" } : { initialMode?: Mode }) {
                   border border-border
                   focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background
                   transition
+                  text-base md:text-sm
                 "
                 aria-label="User ID"
                 autoComplete="username"
@@ -202,6 +204,7 @@ export function AuthCard({ initialMode = "login" } : { initialMode?: Mode }) {
                 border border-border
                 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background
                 transition
+                text-base md:text-sm
               "
               aria-label="Password"
               autoComplete={isLogin ? "current-password" : "new-password"}
