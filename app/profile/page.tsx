@@ -12,6 +12,8 @@ import {
 	Server,
 	Wrench,
 	Plus,
+	Edit2,
+	Check,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -29,8 +31,14 @@ export default function ProfilePage() {
 	const [avatar, setAvatar] = useState<string | null>(null);
 	const [name, setName] = useState<string | null>(null);
 	const [bio, setBio] = useState<string | null>(null);
+	const [posts, setPosts] = useState<number | null>(null);
+	const [followers, setFollowers] = useState<number | null>(null);
+	const [following, setFollowing] = useState<number | null>(null);
+	const [connections, setConnections] = useState<number | null>(null);
 	const [skills, setSkills] = useState<string[] | null>(null);
 	const [interests, setInterests] = useState<string[] | null>(null);
+	const [isEditingLookingFor, setIsEditingLookingFor] = useState(false);
+	const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
 
 	const [, setLoadingUser] = useState(true);
 
@@ -75,9 +83,9 @@ export default function ProfilePage() {
 	// Mock user data
 	const user = {
 		username: username || "idea_matcher_user",
-		name: name || "Alex Rivera",
-		bio: bio || "Full-stack developer passionate about building tools that help developers collaborate. Open source enthusiast. Always looking for interesting projects to work on.",
-		profileImage: avatar || "/developer-avatar.png",
+		name: name || "Idea Matcher",
+		bio: bio || "Couldn't load the data... try reloading or logging out and back in!",
+		profileImage: avatar,
 		posts: 42,
 		followers: 1284,
 		following: 567,
@@ -90,15 +98,23 @@ export default function ProfilePage() {
 			backend: ["Node.js", "Python", "PostgreSQL", "MongoDB"],
 			tools: ["Git", "Docker", "AWS", "Figma"],
 		},
-		interests: interests || ["Web Development", "Open Source", "AI/ML", "DevOps"],
+		interests: interests || [
+			"Web Development",
+			"Open Source",
+			"AI/ML",
+			"DevOps",
+		],
 		verified: true,
 		currentlyWorkingOn: "AI-powered code review tool",
 		lookingFor: "Hackathon teammates for upcoming events",
 		availability: "10-15 hours/week",
-		lookingForRoles: [
+		availableRoles: [
 			"Frontend Developer",
+			"Backend Developer",
 			"UI/UX Designer",
 			"DevOps Engineer",
+			"Data Scientist",
+			"Project Manager",
 		],
 	};
 
@@ -113,6 +129,16 @@ export default function ProfilePage() {
 			navigator.clipboard.writeText(window.location.href);
 			alert("Profile link copied to clipboard!");
 		}
+	};
+
+	const toggleRole = (role: string) => {
+		setSelectedRoles((prev) =>
+			prev.includes(role) ? prev.filter((r) => r !== role) : [...prev, role]
+		);
+	};
+
+	const handleSave = () => {
+		setIsEditingLookingFor(false);
 	};
 
 	return (
@@ -218,12 +244,12 @@ export default function ProfilePage() {
 							<span className="text-muted-foreground">Looking for:</span>
 							<p className="mt-1 text-foreground/90">{user.lookingFor}</p>
 						</div>
-						<div>
+						{/* <div>
 							<span className="text-muted-foreground">Availability:</span>
 							<span className="ml-2 text-foreground/90">
 								{user.availability}
 							</span>
-						</div>
+						</div> */}
 					</div>
 				</div>
 
@@ -263,10 +289,10 @@ export default function ProfilePage() {
 					</h3>
 					<div className="space-y-3">
 						<div>
-							<h4 className="mb-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+							{/* <h4 className="mb-2 flex items-center gap-1.5 text-xs text-muted-foreground">
 								<Code2 className="h-3.5 w-3.5" />
 								Frontend
-							</h4>
+							</h4> */}
 							<div className="flex flex-wrap gap-1.5 sm:gap-2">
 								{user.skills.frontend.map((skill) => (
 									<span
@@ -277,7 +303,9 @@ export default function ProfilePage() {
 								))}
 							</div>
 						</div>
-						<div>
+
+						{/* Below lines are for later use */}
+						{/* <div>
 							<h4 className="mb-2 flex items-center gap-1.5 text-xs text-muted-foreground">
 								<Server className="h-3.5 w-3.5" />
 								Backend
@@ -306,7 +334,7 @@ export default function ProfilePage() {
 									</span>
 								))}
 							</div>
-						</div>
+						</div> */}
 					</div>
 				</div>
 
@@ -329,19 +357,65 @@ export default function ProfilePage() {
 
 				{/* Looking For */}
 				<div className="mb-4 rounded-lg border border-border bg-card p-3 sm:mb-6 sm:p-4">
-					<h3 className="mb-2 flex items-center gap-2 text-xs font-semibold sm:mb-3 sm:text-sm">
-						<Users className="h-4 w-4" />
-						Looking to Connect With
-					</h3>
-					<div className="flex flex-wrap gap-1.5 sm:gap-2">
-						{user.lookingForRoles.map((role) => (
-							<span
-								key={role}
-								className="rounded-md bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary sm:px-3">
-								{role}
-							</span>
-						))}
+					<div className="mb-3 flex items-center justify-between sm:mb-4">
+						<h3 className="flex items-center gap-2 text-xs font-semibold sm:text-sm">
+							<Users className="h-4 w-4" />
+							Looking to Connect With
+						</h3>
+						<button
+							onClick={() => setIsEditingLookingFor(!isEditingLookingFor)}
+							className="flex items-center gap-1.5 rounded-md bg-primary/10 px-2 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/20 sm:px-2.5 sm:py-2">
+							{isEditingLookingFor ? (
+								<>
+									<Check className="h-3.5 w-3.5" />
+									Done
+								</>
+							) : (
+								<>
+									<Edit2 className="h-3.5 w-3.5" />
+									Edit
+								</>
+							)}
+						</button>
 					</div>
+
+					{isEditingLookingFor ? (
+						<div className="space-y-2">
+							<p className="text-xs text-muted-foreground sm:text-sm">
+								Select roles you're looking to connect with:
+							</p>
+							<div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+								{user.availableRoles.map((role) => (
+									<label
+										key={role}
+										className="flex items-center gap-2.5 rounded-md border border-border px-3 py-2.5 cursor-pointer transition-colors hover:bg-card/80">
+										<input
+											type="checkbox"
+											checked={selectedRoles.includes(role)}
+											onChange={() => toggleRole(role)}
+											className="h-4 w-4 cursor-pointer"
+										/>
+										<span className="text-xs sm:text-sm">{role}</span>
+									</label>
+								))}
+							</div>
+							<button
+								onClick={handleSave}
+								className="mt-3 w-full rounded-md bg-primary px-3 py-2 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90 sm:py-2.5">
+								Save Changes
+							</button>
+						</div>
+					) : (
+						<div className="flex flex-wrap gap-1.5 sm:gap-2">
+							{selectedRoles.map((role) => (
+								<span
+									key={role}
+									className="rounded-md bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary sm:px-3">
+									{role}
+								</span>
+							))}
+						</div>
+					)}
 				</div>
 
 				{/* User Posts Section Placeholder */}

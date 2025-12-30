@@ -179,7 +179,7 @@ export default function SkillsPage() {
 				{/* Actions */}
 				<div className="mt-10 flex items-center justify-between">
 					<Button variant="outline" asChild>
-						<Link href="/profile/complete">Back</Link>
+						<Link href="onboarding/interests">Back</Link>
 					</Button>
 					<div className="flex items-center gap-2">
 						<button

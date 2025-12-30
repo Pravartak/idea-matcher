@@ -95,7 +95,7 @@ export default function ProfileSetupPage() {
 					Portfolio: portfolio,
 				});
 			}
-			router.push("/profile/complete");
+			router.push("/onboarding/interests");
 		}
 	}
 
