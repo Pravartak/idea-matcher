@@ -12,6 +12,7 @@ import { doc, getDoc, setDoc } from "firebase/firestore";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { type ChangeEvent, useRef, useEffect, useState } from "react";
+import { Verified } from "lucide-react";
 
 const ROLES = [
 	"Developer",
@@ -90,9 +91,20 @@ export default function ProfileSetupPage() {
 					Email: email,
 					Avatar: avatarUrl || "",
 					Bio: bio,
+					Posts: 0,
+					Followers: 0,
+					Following: 0,
+					Connections: 0,
+					Projects: 0,
+					Hackathons: 0,
 					Role: role,
 					Github: github,
 					Portfolio: portfolio,
+					currentlyWorkingOn: "Nothing yet!",
+					lookingFor: "Nothing yet!",
+					lookingToConnectWith: [],
+					Verified: false,
+					createdAt: new Date().toISOString(),
 				});
 			}
 			router.push("/onboarding/interests");
