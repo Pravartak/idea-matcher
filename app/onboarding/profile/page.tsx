@@ -8,12 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { db } from "@/lib/firebase";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, setDoc, getDoc } from "firebase/firestore";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { type ChangeEvent, useRef, useEffect, useState } from "react";
-import { Verified } from "lucide-react";
-import { time, timeStamp } from "console";
 
 const DOMAINS = [
 	"Web Developer",
@@ -82,15 +80,18 @@ export default function ProfileSetupPage() {
 			);
 			return;
 		} else {
-			const usernameRef = doc(db, "users", username);
-			const docSnap = await getDoc(usernameRef);
-			if (docSnap.exists()) {
+			const usernameRef = doc(db, "usernames", username);
+			const usernameSnap = await getDoc(usernameRef);
+
+			if (usernameSnap.exists()) {
 				alert("Username already taken. Please choose another one.");
 				return;
 			} else {
+				if (!firebaseUid) return;
 				localStorage.setItem("username", username);
-				await setDoc(doc(db, "users", username), {
+				await setDoc(doc(db, "users", firebaseUid), {
 					firebaseUid: firebaseUid,
+					username: username,
 					Name: name,
 					Email: email,
 					Avatar: avatarUrl || "",
@@ -109,6 +110,9 @@ export default function ProfileSetupPage() {
 					lookingToConnectWith: [],
 					Verified: false,
 					createdAt: new Date().toISOString(),
+				}, { merge: true });
+				await setDoc(doc(db, "usernames", username), {
+					firebaseUid: firebaseUid,
 				});
 			}
 			router.push("/onboarding/interests");

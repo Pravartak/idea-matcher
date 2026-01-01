@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { db } from "@/lib/firebase";
 import { doc, updateDoc } from "firebase/firestore";
+import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { Frame, Code2, Server, Wrench } from "lucide-react";
 
@@ -110,12 +111,17 @@ export default function SkillsPage() {
 	const [options, setOptions] = useState<string[]>(DEFAULT_SKILLS);
 	const [custom, setCustom] = useState("");
 	const [isSubmitting, setIsSubmitting] = useState(false);
-	const [username, setUsername] = useState<string | null>(null);
+	const [userUid, setUserUid] = useState<string | null>(null);
 
 	useEffect(() => {
-		const storedUsername = localStorage.getItem("username");
-		setUsername(storedUsername);
-	});
+		const auth = getAuth();
+		const unsubscribe = onAuthStateChanged(auth, (user) => {
+			if (user) {
+				setUserUid(user.uid);
+			}
+		});
+		return () => unsubscribe();
+	}, []);
 
 	function toggleSkill(s: string) {
 		setSkills((prev) =>
@@ -141,7 +147,7 @@ export default function SkillsPage() {
 	}
 
 	async function handleContinue() {
-		if (!username) {
+		if (!userUid) {
 			console.error("No user found. Cannot save skills.");
 			// Optionally, redirect to a login page
 			return;
@@ -171,7 +177,7 @@ export default function SkillsPage() {
 		});
 
 		try {
-			await updateDoc(doc(db, "users", username), {
+			await updateDoc(doc(db, "users", userUid), {
 				Skills: categorizedSkills,
 			});
 			router.push("/home");

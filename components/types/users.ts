@@ -1,6 +1,7 @@
 export type ProfileViewProps = {
 	userid: string | null;
 	user: {
+		username: string;
 		Name: string;
 		Bio: string;
 		Avatar: string | null;

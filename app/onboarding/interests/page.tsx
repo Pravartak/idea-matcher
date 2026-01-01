@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { db } from "@/lib/firebase"; // Assuming you have this config file
 import { doc, updateDoc } from "firebase/firestore";
+import { getAuth, onAuthStateChanged } from "firebase/auth";
 
 const ALL_INTERESTS = [
 	"Web Development",
@@ -30,12 +31,17 @@ export default function ProfileCompletePage() {
 	const [selected, setSelected] = useState<string[]>([]);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const router = useRouter();
-	const [username, setUsername] = useState<string | null>(null);
+	const [userUid, setUserUid] = useState<string | null>(null);
 
 	useEffect(() => {
-		const storedUsername = localStorage.getItem("username");
-		setUsername(storedUsername);
-	});
+		const auth = getAuth();
+		const unsubscribe = onAuthStateChanged(auth, (user) => {
+			if (user) {
+				setUserUid(user.uid);
+			}
+		});
+		return () => unsubscribe();
+	}, []);
 
 	function toggleInterest(tag: string) {
 		setSelected((prev) =>
@@ -44,7 +50,7 @@ export default function ProfileCompletePage() {
 	}
 
 	async function handleContinue() {
-		if (!username) {
+		if (!userUid) {
 			console.error("No user found. Cannot save interests.");
 			// Optionally, redirect to a login page
 			return;
@@ -52,7 +58,7 @@ export default function ProfileCompletePage() {
 
 		setIsSubmitting(true);
 		try {
-			await updateDoc(doc(db, "users", username), {
+			await updateDoc(doc(db, "users", userUid), {
 				interests: selected,
 			});
 			router.push("/onboarding/skills");

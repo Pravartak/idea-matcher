@@ -58,7 +58,7 @@ export default function ProfilePage({
 	const handleShare = () => {
 		if (navigator.share) {
 			navigator.share({
-				title: `${user.Name} (@${userid}) - IdeaMatcher`,
+				title: `${user.Name} (@${user.username}) - IdeaMatcher`,
 				text: user.Bio,
 				url: `${window.location.origin}/u/${userid}`,
 			});
@@ -92,7 +92,7 @@ export default function ProfilePage({
 						className="flex h-8 w-8 items-center justify-center rounded-lg transition-colors hover:bg-accent sm:h-9 sm:w-9">
 						<ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5" />
 					</Link>
-					<h1 className="text-sm font-medium sm:text-base">@{userid}</h1>
+					<h1 className="text-sm font-medium sm:text-base">@{user.username}</h1>
 					{isOwner ? (
 						<Link
 							href="/settings"
