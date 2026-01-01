@@ -19,7 +19,7 @@ export type ProfileViewProps = {
 		currentlyWorkingOn: string;
 		lookingFor: string;
 		availability: string;
-		lookingToConnectWith: [];
+		lookingToConnectWith: string[] | null;
 		Projects: number | null;
 		Hackathons: number | null;
 		skillMatches: number | null;

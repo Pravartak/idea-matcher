@@ -382,7 +382,7 @@ export default function ProfilePage({
 						</div>
 					) : (
 						<div className="flex flex-wrap gap-1.5 sm:gap-2">
-							{user.lookingToConnectWith.map((role) => (
+							{user.lookingToConnectWith?.map((role) => (
 								<span
 									key={role}
 									className="rounded-md bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary sm:px-3">
