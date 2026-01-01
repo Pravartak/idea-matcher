@@ -31,7 +31,9 @@ export default function ProfilePage({
 	isOwner,
 }: ProfileViewProps) {
 	const [isEditingLookingFor, setIsEditingLookingFor] = useState(false);
-	const [selectedRoles, setSelectedRoles] = useState<string[]>(user.lookingToConnectWith || []);
+	const [selectedRoles, setSelectedRoles] = useState<string[]>(
+		user.lookingToConnectWith || []
+	);
 
 	const ALL_ROLES = [
 		"Frontend Developer",
@@ -270,12 +272,12 @@ export default function ProfilePage({
 					</h3>
 					<div className="space-y-3">
 						<div>
-							{/* <h4 className="mb-2 flex items-center gap-1.5 text-xs text-muted-foreground">
-                <Code2 className="h-3.5 w-3.5" />
-                Frontend
-              </h4> */}
+							<h4 className="mb-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+								<Code2 className="h-3.5 w-3.5" />
+								Languages
+							</h4>
 							<div className="flex flex-wrap gap-1.5 sm:gap-2">
-								{user.skills?.map((skill) => (
+								{user.Skills?.Languages.map((skill) => (
 									<span
 										key={skill}
 										className="rounded-md bg-accent px-2.5 py-1 text-xs font-medium text-accent-foreground sm:px-3">
@@ -284,38 +286,51 @@ export default function ProfilePage({
 								))}
 							</div>
 						</div>
-						{/* <div>
-              <h4 className="mb-2 flex items-center gap-1.5 text-xs text-muted-foreground">
-                <Server className="h-3.5 w-3.5" />
-                Backend
-              </h4>
-              <div className="flex flex-wrap gap-1.5 sm:gap-2">
-                {user.skills?.backend?.map((skill) => (
-                  <span
-                    key={skill}
-                    className="rounded-md bg-accent px-2.5 py-1 text-xs font-medium text-accent-foreground sm:px-3"
-                  >
-                    {skill}
-                  </span>
-                ))}
-              </div>
-            </div>
-            <div>
-              <h4 className="mb-2 flex items-center gap-1.5 text-xs text-muted-foreground">
-                <Wrench className="h-3.5 w-3.5" />
-                Tools
-              </h4>
-              <div className="flex flex-wrap gap-1.5 sm:gap-2">
-                {user.skills?.tools?.map((skill) => (
-                  <span
-                    key={skill}
-                    className="rounded-md bg-accent px-2.5 py-1 text-xs font-medium text-accent-foreground sm:px-3"
-                  >
-                    {skill}
-                  </span>
-                ))}
-              </div>
-            </div> */}
+						<div>
+							<h4 className="mb-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+								<Server className="h-3.5 w-3.5" />
+								Frameworks
+							</h4>
+							<div className="flex flex-wrap gap-1.5 sm:gap-2">
+								{user.Skills?.Frameworks.map((skill) => (
+									<span
+										key={skill}
+										className="rounded-md bg-accent px-2.5 py-1 text-xs font-medium text-accent-foreground sm:px-3">
+										{skill}
+									</span>
+								))}
+							</div>
+						</div>
+						<div>
+							<h4 className="mb-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+								<Server className="h-3.5 w-3.5" />
+								Platforms
+							</h4>
+							<div className="flex flex-wrap gap-1.5 sm:gap-2">
+								{user.Skills?.Platforms.map((skill) => (
+									<span
+										key={skill}
+										className="rounded-md bg-accent px-2.5 py-1 text-xs font-medium text-accent-foreground sm:px-3">
+										{skill}
+									</span>
+								))}
+							</div>
+						</div>
+						<div>
+							<h4 className="mb-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+								<Wrench className="h-3.5 w-3.5" />
+								Tools
+							</h4>
+							<div className="flex flex-wrap gap-1.5 sm:gap-2">
+								{user.Skills?.Tools.map((skill) => (
+									<span
+										key={skill}
+										className="rounded-md bg-accent px-2.5 py-1 text-xs font-medium text-accent-foreground sm:px-3">
+										{skill}
+									</span>
+								))}
+							</div>
+						</div>
 					</div>
 				</div>
 

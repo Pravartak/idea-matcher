@@ -13,14 +13,18 @@ import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { type ChangeEvent, useRef, useEffect, useState } from "react";
 import { Verified } from "lucide-react";
+import { time, timeStamp } from "console";
 
-const ROLES = [
-	"Developer",
-	"Designer",
-	"Product Manager",
-	"Researcher",
-	"Entrepreneur",
-	"Student",
+const DOMAINS = [
+	"Web Developer",
+	"Mobile Developer",
+	"Game Developer",
+	"Data Scientist",
+	"UI/UX Designer",
+	"AI/ML Engineer",
+	"DevOps/Cloud Engineer",
+	"Emmbedded IoT",
+	"Student/Learner",
 	"Other",
 ];
 
@@ -39,7 +43,7 @@ export default function ProfileSetupPage() {
 	const [name, setName] = useState(user?.displayName || "");
 	const [username, setUsername] = useState("");
 	const [bio, setBio] = useState("");
-	const [role, setRole] = useState<string>("");
+	const [domain, setDomain] = useState<string>("");
 	const [github, setGithub] = useState("");
 	const [portfolio, setPortfolio] = useState("");
 
@@ -72,9 +76,9 @@ export default function ProfileSetupPage() {
 	}, []);
 
 	async function handleContinue() {
-		if (!username.trim() || !bio.trim() || !role || !name.trim()) {
+		if (!username.trim() || !bio.trim() || !domain || !name.trim()) {
 			alert(
-				"Please fill out all required fields: Name, Username, Bio, and Role."
+				"Please fill out all required fields: Name, Username, Bio, and Domain."
 			);
 			return;
 		} else {
@@ -97,7 +101,7 @@ export default function ProfileSetupPage() {
 					Connections: 0,
 					Projects: 0,
 					Hackathons: 0,
-					Role: role,
+					Domain: domain,
 					Github: github,
 					Portfolio: portfolio,
 					currentlyWorkingOn: "Nothing yet!",
@@ -223,17 +227,17 @@ export default function ProfileSetupPage() {
 				{/* Role */}
 				<div className="mt-6">
 					<label className="mb-2 block text-sm text-muted-foreground">
-						Choose your main role
+						What best describes you?
 					</label>
 					<select
-						value={role}
-						onChange={(e) => setRole(e.target.value)}
+						value={domain}
+						onChange={(e) => setDomain(e.target.value)}
 						className={cn(
 							"w-full rounded-md border bg-background p-2.5 text-sm",
 							"border-border focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground"
 						)}>
-						<option value="">Select a role</option>
-						{ROLES.map((r) => (
+						<option value="">Select a domain</option>
+						{DOMAINS.map((r) => (
 							<option key={r} value={r}>
 								{r}
 							</option>

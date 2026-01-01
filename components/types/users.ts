@@ -13,7 +13,12 @@ export type ProfileViewProps = {
 		//     backend: [],
 		//     tools: [],
 		// },
-		skills: [];
+		Skills: {
+			Languages: string[];
+			Frameworks: string[];
+			Platforms: string[];
+			Tools: string[];
+		};
 		interests: [];
 		verified: boolean;
 		currentlyWorkingOn: string;

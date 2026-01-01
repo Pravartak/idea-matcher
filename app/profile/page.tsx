@@ -6,12 +6,13 @@ import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import ProfileView from "@/components/profile/ProfileView";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
-import router from "next/router";
+import { useRouter } from "next/navigation";
 
 export default function MyProfilePage() {
 	const [username, setUsername] = useState<string | null>(null);
 	const [userData, setUserData] = useState<any>(null);
 	const [loading, setLoading] = useState(true);
+	const router = useRouter();
 
 	useEffect(() => {
 		const auth = getAuth();

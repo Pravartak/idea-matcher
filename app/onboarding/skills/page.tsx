@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { db } from "@/lib/firebase";
 import { doc, updateDoc } from "firebase/firestore";
 import { useRouter } from "next/navigation";
+import { Frame, Code2, Server, Wrench } from "lucide-react";
 
 const DEFAULT_SKILLS = [
 	"HTML",
@@ -38,22 +39,69 @@ const DEFAULT_SKILLS = [
 	"UI Design",
 ];
 
-const SKILL_CATEGORIES = {
-	frontend: [
+const SKILLS = {
+	Languages: [
 		"HTML",
 		"CSS",
 		"JavaScript",
 		"TypeScript",
-		"React",
-		"Next",
-		"Vue",
-		"Angular",
-		"Tailwind CSS",
+		"Python",
+		"Java",
 		"C",
 		"C++",
+		"C#",
+		"Ruby",
+		"PHP",
 		"Swift",
 		"Kotlin",
+		"Rust",
+		"Go",
 	],
+	Frameworks: [
+		"React",
+		"Next.js",
+		"Vue.js",
+		"Angular",
+		"Node.js",
+		"Express",
+		"Django",
+		"Flask",
+		"Spring Boot",
+		"Ruby on Rails",
+		"Laravel",
+		"ASP.NET",
+		"Flutter",
+	],
+	Platforms: [
+		"AWS",
+		"Azure",
+		"Google Cloud",
+		"Firebase",
+		"Netlify",
+		"Vercel",
+		"Docker",
+		"Android",
+		"iOS",
+	],
+	Tools: [
+		"Git",
+		"GitHub",
+		"GitLab",
+		"Jira",
+		"Trello",
+		"Figma",
+		"Sketch",
+		"Adobe XD",
+		"VS Code",
+		"IntelliJ IDEA",
+	],
+};
+
+const CATEGORY_ICONS: Record<string, React.ElementType> = {
+	Languages: Code2,
+	Frameworks: Frame,
+	Platforms: Server,
+	Tools: Wrench,
 };
 
 export default function SkillsPage() {
@@ -100,9 +148,31 @@ export default function SkillsPage() {
 		}
 
 		setIsSubmitting(true);
+
+		const categorizedSkills: Record<string, string[]> = {
+			Languages: [],
+			Frameworks: [],
+			Platforms: [],
+			Tools: [],
+		};
+
+		skills.forEach((skill) => {
+			let found = false;
+			for (const [category, list] of Object.entries(SKILLS)) {
+				if (list.includes(skill)) {
+					categorizedSkills[category].push(skill);
+					found = true;
+					break;
+				}
+			}
+			if (!found) {
+				categorizedSkills.Tools.push(skill);
+			}
+		});
+
 		try {
 			await updateDoc(doc(db, "users", username), {
-				skills: skills,
+				Skills: categorizedSkills,
 			});
 			router.push("/home");
 		} catch (error) {
@@ -138,25 +208,39 @@ export default function SkillsPage() {
 				</div>
 
 				{/* Skills grid */}
-				<div className="mt-8">
-					<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-						{options.map((s) => {
-							const selected = skills.includes(s);
+				<div className="mt-8 space-y-8">
+					{(Object.entries(SKILLS) as [string, string[]][]).map(
+						([category, categorySkills]) => {
+							const Icon = CATEGORY_ICONS[category];
 							return (
-								<button
-									key={s}
-									type="button"
-									onClick={() => toggleSkill(s)}
-									className={cn(
-										"rounded-md border px-3 py-2 text-sm transition",
-										"border-border bg-card hover:border-foreground/25",
-										selected && "bg-foreground text-background font-semibold"
-									)}>
-									{s}
-								</button>
+								<div key={category}>
+									<h3 className="mb-3 flex items-center gap-2 text-sm font-medium text-muted-foreground">
+										{Icon && <Icon className="h-4 w-4" />}
+										{category}
+									</h3>
+									<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+										{categorySkills.map((s) => {
+											const selected = skills.includes(s);
+											return (
+												<button
+													key={s}
+													type="button"
+													onClick={() => toggleSkill(s)}
+													className={cn(
+														"rounded-md border px-3 py-2 text-sm transition",
+														"border-border bg-card hover:border-foreground/25",
+														selected &&
+															"bg-foreground text-background font-semibold"
+													)}>
+													{s}
+												</button>
+											);
+										})}
+									</div>
+								</div>
 							);
-						})}
-					</div>
+						}
+					)}
 				</div>
 
 				{/* Custom skill */}
