@@ -31,11 +31,8 @@ export default function ProfilePage({
 	isOwner,
 }: ProfileViewProps) {
 	const [isEditingLookingFor, setIsEditingLookingFor] = useState(false);
-	const [selectedRoles, setSelectedRoles] = useState([
-		"Frontend Developer",
-		"UI/UX Designer",
-		"DevOps Engineer",
-	]);
+	const [selectedRoles, setSelectedRoles] = useState<string[]>(user.lookingToConnectWith || []);
+
 	const ALL_ROLES = [
 		"Frontend Developer",
 		"Backend Developer",
@@ -385,7 +382,7 @@ export default function ProfilePage({
 						</div>
 					) : (
 						<div className="flex flex-wrap gap-1.5 sm:gap-2">
-							{selectedRoles.map((role) => (
+							{user.lookingToConnectWith.map((role) => (
 								<span
 									key={role}
 									className="rounded-md bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary sm:px-3">
