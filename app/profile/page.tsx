@@ -2,14 +2,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import ProfileView from "@/components/profile/ProfileView";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { useRouter } from "next/navigation";
+import { setUserId } from "firebase/analytics";
 
 export default function MyProfilePage() {
-	const [username, setUsername] = useState<string | null>(null);
+	// const [username, setUsername] = useState<string | null>(null);
 	const [userData, setUserData] = useState<any>(null);
 	const [loading, setLoading] = useState(true);
 	const router = useRouter();
@@ -23,27 +24,17 @@ export default function MyProfilePage() {
 				return;
 			}
 
-			async function loadUser() {
-				const q = query(
-					collection(db, "users"),
-					where("firebaseUid", "==", auth.currentUser?.uid)
-				);
+			const docRef = doc(db, "users", user.uid);
+			const docSnap = await getDoc(docRef);
 
-				const snap = await getDocs(q);
-
-				if (snap.empty) {
-					router.push("/onboarding/profile");
-					return;
-				}
-				const docSnap = snap.docs[0];
-				setUserData(docSnap.data());
-
-				setUsername(docSnap.id);
-				setLoading(false);
-
-				localStorage.setItem("username", docSnap.id);
+			if (!docSnap.exists()) {
+				router.push("/onboarding/profile");
+				return;
 			}
-			loadUser();
+
+			// setUserId(user.uid);
+			setUserData(docSnap.data());
+			setLoading(false);
 		});
 		return () => unsubscribe();
 	}, []);
@@ -63,5 +54,5 @@ export default function MyProfilePage() {
 		);
 	}
 
-	return <ProfileView user={userData} userid={username} isOwner={true} />;
+	return <ProfileView user={userData} isOwner={true} />;
 }

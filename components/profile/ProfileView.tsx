@@ -21,19 +21,20 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import { ProfileViewProps } from "../types/users";
+import { User } from "../types/user";
 import { db } from "@/lib/firebase";
 import { updateDoc, doc } from "firebase/firestore";
+import { useRouter } from "next/navigation";
 
-export default function ProfilePage({
-	user,
-	userid,
-	isOwner,
-}: ProfileViewProps) {
+// const router = useRouter();
+
+export default function ProfilePage({ user, isOwner }: User) {
 	const [isEditingLookingFor, setIsEditingLookingFor] = useState(false);
 	const [selectedRoles, setSelectedRoles] = useState<string[]>(
 		user.lookingToConnectWith || []
 	);
+
+	const router = useRouter();
 
 	const ALL_ROLES = [
 		"Frontend Developer",
@@ -48,24 +49,32 @@ export default function ProfilePage({
 		"Project Manager",
 		"Researcher",
 		"Entrepreneur",
-		"Student",
-		"Other",
 	];
 
 	const [isConnected, setIsConnected] = useState(false);
 	const [isFollowing, setIsFollowing] = useState(false);
+	const [isSharing, setIsSharing] = useState(false);
 
-	const handleShare = () => {
+	const handleShare = async () => {
+		if (isSharing) return;
+
+		if (!navigator.share) {
+			alert("Sharing is not supported on this device");
+			return;
+		}
+
 		if (navigator.share) {
-			navigator.share({
+			await navigator.share({
 				title: `${user.Name} (@${user.username}) - IdeaMatcher`,
-				text: user.Bio,
-				url: `${window.location.origin}/u/${userid}`,
+				text: user.Bio || "Check out this profile!",
+				url: `${window.location.origin}/u/${user.uid}`,
 			});
 		} else {
-			navigator.clipboard.writeText(`${window.location.origin}/u/${userid}`);
+			navigator.clipboard.writeText(`${window.location.origin}/u/${user.uid}`);
 			alert("Profile link copied to clipboard!");
 		}
+		setIsSharing(true);
+		setTimeout(() => setIsSharing(false), 2000);
 	};
 
 	const toggleRole = (role: string) => {
@@ -75,8 +84,8 @@ export default function ProfilePage({
 	};
 
 	const handleSave = async () => {
-		if (!userid) return;
-		await updateDoc(doc(db, "users", userid), {
+		if (!user.uid) return;
+		await updateDoc(doc(db, "users", user.uid), {
 			lookingToConnectWith: selectedRoles,
 		});
 		setIsEditingLookingFor(false);
@@ -118,7 +127,7 @@ export default function ProfilePage({
 						<Avatar className="h-20 w-20 sm:h-28 sm:w-28 md:h-32 md:w-32">
 							<AvatarImage
 								src={user.Avatar || "/placeholder.svg"}
-								alt={user.Name}
+								alt={user.Name || "User"}
 							/>
 							<AvatarFallback className="text-xl sm:text-2xl">
 								{(user.Name ?? "")
@@ -165,7 +174,7 @@ export default function ProfilePage({
 						<Button
 							asChild
 							className="flex-1 bg-primary text-xs font-medium text-primary-foreground hover:bg-primary/90 sm:text-sm">
-							<Link href="/edit-profile">Edit Profile</Link>
+							<Link href="/profile/edit">Edit Profile</Link>
 						</Button>
 						<Button
 							onClick={handleShare}
@@ -206,7 +215,7 @@ export default function ProfilePage({
 							asChild
 							variant="outline"
 							className="flex-1 border-border bg-transparent text-xs font-medium hover:bg-accent sm:text-sm">
-							<Link href={`/chat/${userid}`}>
+							<Link href={`/chat/${user.uid}`}>
 								<MessageSquare className="mr-1.5 h-3.5 w-3.5 sm:mr-2 sm:h-4 sm:w-4" />
 								Message
 							</Link>
@@ -357,7 +366,7 @@ export default function ProfilePage({
 							<Users className="h-4 w-4" />
 							Looking to Connect With
 						</h3>
-						{isOwner && !isEditingLookingFor ? (
+						{/* {isOwner && !isEditingLookingFor ? (
 							<button
 								onClick={() => setIsEditingLookingFor(!isEditingLookingFor)}
 								className="flex items-center gap-1.5 rounded-md bg-primary/10 px-2 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/20 sm:px-2.5 sm:py-2">
@@ -366,7 +375,7 @@ export default function ProfilePage({
 									Edit
 								</>
 							</button>
-						) : null}
+						) : null} */}
 					</div>
 
 					{isEditingLookingFor ? (

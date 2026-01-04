@@ -1,26 +1,21 @@
-export type ProfileViewProps = {
-	userid: string | null;
+export type User = {
 	user: {
-		username: string;
-		Name: string;
-		Bio: string;
+		uid: string | null;
+		username: string | null;
+		Name: string | undefined;
+		Bio: string | null;
 		Avatar: string | null;
 		Posts: number | null;
 		Followers: number | null;
 		Following: number | null;
 		Connections: number | null;
-		// skills: {
-		//     frontend: [],
-		//     backend: [],
-		//     tools: [],
-		// },
 		Skills: {
 			Languages: string[];
 			Frameworks: string[];
 			Platforms: string[];
 			Tools: string[];
 		};
-		interests: [];
+		interests: string[];
 		verified: boolean;
 		currentlyWorkingOn: string;
 		lookingFor: string;

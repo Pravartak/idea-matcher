@@ -3,7 +3,7 @@
 import { doc, getDoc, } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { notFound } from "next/navigation";
-import { ProfileViewProps } from "@/components/types/users";
+import { User } from "@/components/types/user";
 import ProfileViewServer from "@/components/profile/ProfileViewServer";
 
 export default async function PublicProfile({ params }: { params: { username: string }; }) {
@@ -20,7 +20,7 @@ export default async function PublicProfile({ params }: { params: { username: st
 		return notFound();
 	}
 
-	const userData = userDoc.data() as ProfileViewProps["user"];
+	const userData = userDoc.data() as User["user"];
 
 	if (!userData) {
 		return (

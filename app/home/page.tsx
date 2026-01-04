@@ -29,12 +29,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { db } from "@/lib/firebase";
-import {
-	collection,
-	getDocs,
-	query,
-	where,
-} from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, query, where } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 
@@ -443,11 +438,7 @@ export default function FeedPage() {
 	const [sidebarExpanded, setSidebarExpanded] = useState(false);
 	const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-	const [username, setUsername] = useState<string | null>(null);
-	const [avatar, setAvatar] = useState<string | null>(null);
-	const [name, setName] = useState<string | null>(null);
-
-	const [, setLoadingUser] = useState(true);
+	const [userData, setUserData] = useState<any | null>(null);
 
 	useEffect(() => {
 		const auth = getAuth();
@@ -458,28 +449,15 @@ export default function FeedPage() {
 				return;
 			}
 
-			async function loadUser() {
-				const q = query(
-					collection(db, "users"),
-					where("firebaseUid", "==", auth.currentUser?.uid)
-				);
+			const docRef = doc(db, "users", user.uid);
+			const docSnap = await getDoc(docRef);
 
-				const snap = await getDocs(q);
-
-				if (snap.empty) {
-					router.push("/onboarding/profile");
-					return;
-				}
-				const docSnap = snap.docs[0];
-
-				setUsername(docSnap.id);
-				setAvatar(docSnap.get("Avatar"));
-				setName(docSnap.get("Name"));
-				setLoadingUser(false);
-
-				localStorage.setItem("username", docSnap.id);
+			if (!docSnap.exists()) {
+				router.push("/onboarding/profile");
+				return;
 			}
-			loadUser();
+
+			setUserData(docSnap.data());
 		});
 		return () => unsubscribe();
 	}, []);
@@ -603,16 +581,16 @@ export default function FeedPage() {
 						}`}
 						title={!showSidebarText ? "Your Profile" : undefined}>
 						<Avatar className="w-9 h-9 flex-shrink-0">
-							<AvatarImage src={avatar ? avatar : undefined} />
+							<AvatarImage src={userData?.Avatar} />
 							<AvatarFallback className="font-mono">U</AvatarFallback>
 						</Avatar>
 						{showSidebarText && (
 							<div className="flex-1 min-w-0">
 								<p className="font-mono text-sm font-medium text-foreground truncate">
-									{name}
+									{userData.Name}
 								</p>
 								<p className="font-mono text-xs text-muted-foreground truncate">
-									{username}
+									{userData.username}
 								</p>
 							</div>
 						)}

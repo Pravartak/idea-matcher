@@ -90,7 +90,7 @@ export default function ProfileSetupPage() {
 				if (!firebaseUid) return;
 				localStorage.setItem("username", username);
 				await setDoc(doc(db, "users", firebaseUid), {
-					firebaseUid: firebaseUid,
+					uid: firebaseUid,
 					username: username,
 					Name: name,
 					Email: email,
