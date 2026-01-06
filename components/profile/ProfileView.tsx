@@ -12,29 +12,59 @@ import {
 	Server,
 	Wrench,
 	Plus,
-	Edit2,
-	Check,
 	Heart,
 	MessageSquare,
 	UserPlus,
+	MoreHorizontal,
+	MessageCircle,
+	Bookmark,
+	ChevronRight,
+	ChevronLeft,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { User } from "../types/user";
 import { db } from "@/lib/firebase";
 import { updateDoc, doc } from "firebase/firestore";
 import { useRouter } from "next/navigation";
+import { Post, MediaCarousel } from "../postComponents/PostComponents";
 
-// const router = useRouter();
+interface ProfileViewProps {
+	user: User["user"];
+	isOwner: User["isOwner"];
+	posts: Post[];
+}
 
-export default function ProfilePage({ user, isOwner }: User) {
+export default function ProfilePage({
+	user,
+	isOwner,
+	posts,
+}: ProfileViewProps) {
 	const [isEditingLookingFor, setIsEditingLookingFor] = useState(false);
 	const [selectedRoles, setSelectedRoles] = useState<string[]>(
 		user.lookingToConnectWith || []
 	);
 
 	const router = useRouter();
+
+	useEffect(() => {
+		const meta = document.querySelector("meta[name='viewport']");
+		const originalContent = meta?.getAttribute("content");
+
+		if (meta) {
+			meta.setAttribute(
+				"content",
+				"width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0"
+			);
+		}
+
+		return () => {
+			if (meta && originalContent) {
+				meta.setAttribute("content", originalContent);
+			}
+		};
+	}, []);
 
 	const ALL_ROLES = [
 		"Frontend Developer",
@@ -75,20 +105,6 @@ export default function ProfilePage({ user, isOwner }: User) {
 		}
 		setIsSharing(true);
 		setTimeout(() => setIsSharing(false), 2000);
-	};
-
-	const toggleRole = (role: string) => {
-		setSelectedRoles((prev) =>
-			prev.includes(role) ? prev.filter((r) => r !== role) : [...prev, role]
-		);
-	};
-
-	const handleSave = async () => {
-		if (!user.uid) return;
-		await updateDoc(doc(db, "users", user.uid), {
-			lookingToConnectWith: selectedRoles,
-		});
-		setIsEditingLookingFor(false);
 	};
 
 	return (
@@ -366,77 +382,157 @@ export default function ProfilePage({ user, isOwner }: User) {
 							<Users className="h-4 w-4" />
 							Looking to Connect With
 						</h3>
-						{/* {isOwner && !isEditingLookingFor ? (
-							<button
-								onClick={() => setIsEditingLookingFor(!isEditingLookingFor)}
-								className="flex items-center gap-1.5 rounded-md bg-primary/10 px-2 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/20 sm:px-2.5 sm:py-2">
-								<>
-									<Edit2 className="h-3.5 w-3.5" />
-									Edit
-								</>
-							</button>
-						) : null} */}
 					</div>
 
-					{isEditingLookingFor ? (
-						<div className="space-y-2">
-							<p className="text-xs text-muted-foreground sm:text-sm">
-								Select roles you're looking to connect with:
-							</p>
-							<div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-								{ALL_ROLES.map((role) => (
-									<label
-										key={role}
-										className="flex items-center gap-2.5 rounded-md border border-border px-3 py-2.5 cursor-pointer transition-colors hover:bg-card/80">
-										<input
-											type="checkbox"
-											checked={selectedRoles.includes(role)}
-											onChange={() => toggleRole(role)}
-											className="h-4 w-4 cursor-pointer"
-										/>
-										<span className="text-xs sm:text-sm">{role}</span>
-									</label>
-								))}
-							</div>
-							<button
-								onClick={handleSave}
-								className="mt-3 w-full rounded-md bg-primary px-3 py-2 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90 sm:py-2.5">
-								Save Changes
-							</button>
-						</div>
-					) : (
-						<div className="flex flex-wrap gap-1.5 sm:gap-2">
-							{user.lookingToConnectWith?.map((role) => (
-								<span
-									key={role}
-									className="rounded-md bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary sm:px-3">
-									{role}
-								</span>
+					{/* Looking to Connect With */}
+					<div className="flex flex-wrap gap-1.5 sm:gap-2">
+						{user.lookingToConnectWith?.map((role) => (
+							<span
+								key={role}
+								className="rounded-md bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary sm:px-3">
+								{role}
+							</span>
+						))}
+					</div>
+				</div>
+
+				{/* User Posts Section */}
+				{posts.length > 0 ? (
+					<div className="space-y-4">
+						<h3 className="flex items-center gap-2 text-lg font-semibold">
+							<MessageSquare className="h-5 w-5" />
+							Posts
+						</h3>
+						<div className="grid gap-4">
+							{posts.map((post) => (
+								<article
+									key={post.id}
+									className="bg-card border border-border rounded-xl p-5">
+									{/* Post Header */}
+									<div className="flex items-start justify-between mb-4">
+										<div className="flex items-center gap-3">
+											<Avatar className="w-11 h-11">
+												<AvatarImage
+													src={post.author?.avatar || "/placeholder.svg"}
+													alt={post.author?.name || "Idea Matcher"}
+												/>
+												<AvatarFallback className="font-mono">
+													{post.author?.name[0] || "U"}
+												</AvatarFallback>
+											</Avatar>
+											<div>
+												<div className="flex items-center gap-2">
+													<span className="font-mono font-medium text-foreground">
+														{post.author?.name || "Idea Matcher"}
+													</span>
+													{post.author.verified && (
+														<span className="px-1.5 py-0.5 bg-primary/20 text-primary text-xs font-mono rounded">
+															Verified
+														</span>
+													)}
+												</div>
+												<div className="flex items-center gap-2 text-sm text-muted-foreground font-mono">
+													<span>{post.author.username}</span>
+													<span>·</span>
+													<span>
+														{post.createdAt instanceof Date
+															? post.createdAt.toLocaleString()
+															: new Date(post.createdAt).toLocaleString()}
+														{/* {post.id.createdAt.toLocaleDateString()} */}
+													</span>
+												</div>
+											</div>
+										</div>
+										<Button
+											variant="ghost"
+											size="icon"
+											className="text-muted-foreground hover:text-foreground">
+											<MoreHorizontal className="w-5 h-5" />
+										</Button>
+									</div>
+
+									{/* Post Content */}
+									<p className="font-mono text-sm text-foreground leading-relaxed mb-4">
+										{post.content}
+									</p>
+
+									{/* Media */}
+									{post.media && post.media.length > 0 && (
+										<div className="mb-4">
+											<MediaCarousel media={post.media} />
+										</div>
+									)}
+
+									{/* Tags */}
+									<div className="flex flex-wrap gap-2 mb-4">
+										{post.tags?.map((tag: string) => (
+											<span
+												key={tag}
+												className="px-2 py-1 bg-secondary text-muted-foreground text-xs font-mono rounded hover:bg-muted hover:text-foreground cursor-pointer transition-colors">
+												{tag}
+											</span>
+										))}
+									</div>
+
+									{/* Actions */}
+									<div className="flex items-center justify-between pt-3 border-t border-border">
+										<div className="flex items-center gap-1">
+											<Button
+												variant="ghost"
+												size="sm"
+												className={`gap-2 font-mono text-xs text-muted-foreground hover:text-foreground`}>
+												<Heart className={`w-4 h-4`} />
+												{post.likesCount}
+											</Button>
+											<Button
+												variant="ghost"
+												size="sm"
+												className="gap-2 font-mono text-xs text-muted-foreground hover:text-foreground">
+												<MessageCircle className="w-4 h-4" />
+												{post.commentsCount}
+											</Button>
+											<Button
+												variant="ghost"
+												size="sm"
+												className="gap-2 font-mono text-xs text-muted-foreground hover:text-foreground">
+												<Share2 className="w-4 h-4" />
+												{post.sharesCount}
+											</Button>
+										</div>
+										<Button
+											variant="ghost"
+											size="sm"
+											className={`text-muted-foreground hover:text-foreground`}>
+											<Bookmark className={`w-4 h-4`} />
+										</Button>
+									</div>
+								</article>
 							))}
 						</div>
-					)}
-				</div>
-
-				{/* User Posts Section Placeholder */}
-				<div className="rounded-lg border border-border bg-card p-8 text-center sm:p-12">
-					<div className="mx-auto max-w-sm">
-						<div className="mb-4 flex justify-center">
-							<div className="rounded-full bg-accent p-4">
-								<Plus className="h-8 w-8 text-muted-foreground" />
-							</div>
-						</div>
-						<h3 className="mb-2 text-sm font-semibold sm:text-base">
-							No posts yet
-						</h3>
-						<p className="mb-4 text-xs text-muted-foreground sm:text-sm">
-							Share what you're building, your ideas, or collaborate with other
-							developers.
-						</p>
-						<Button className="bg-primary text-xs font-medium text-primary-foreground hover:bg-primary/90 sm:text-sm">
-							Create your first post
-						</Button>
 					</div>
-				</div>
+				) : (
+					<div className="rounded-lg border border-border bg-card p-8 text-center sm:p-12">
+						<div className="mx-auto max-w-sm">
+							<div className="mb-4 flex justify-center">
+								<div className="rounded-full bg-accent p-4">
+									<Plus className="h-8 w-8 text-muted-foreground" />
+								</div>
+							</div>
+							<h3 className="mb-2 text-sm font-semibold sm:text-base">
+								No posts yet
+							</h3>
+							<p className="mb-4 text-xs text-muted-foreground sm:text-sm">
+								Share what you're building, your ideas, or collaborate with
+								other developers.
+							</p>
+							<Button
+								asChild
+								className="bg-primary text-xs font-medium text-primary-foreground hover:bg-primary/90 sm:text-sm">
+								<Link href="/create-post">Create your first post</Link>
+							</Button>
+						</div>
+					</div>
+				)}
 			</main>
 		</div>
 	);

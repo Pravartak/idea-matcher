@@ -3,12 +3,12 @@ import ProfileView from "./ProfileView";
 
 export default function ProfileViewServer({
 	user,
-	userid,
 	isOwner,
+	posts,
 }: {
 	user: any;
-	userid: string;
 	isOwner: boolean;
+	posts: any;
 }) {
-	return <ProfileView user={user} userid={userid} isOwner={isOwner} />;
+	return <ProfileView user={user} isOwner={isOwner} posts={posts}/>;
 }

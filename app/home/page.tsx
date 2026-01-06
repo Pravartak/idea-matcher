@@ -29,7 +29,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { db } from "@/lib/firebase";
-import { collection, doc, getDoc, getDocs, query, where } from "firebase/firestore";
+import { doc, getDoc } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 
@@ -51,32 +51,39 @@ const secondaryNavItems = [
 interface PostMedia {
 	type: "image" | "video" | "audio";
 	url: string;
-	alt?: string;
+
+	alt?: string; // for images (accessibility)
+	thumbnail?: string; // for video/audio preview
+	duration?: number; // for audio/video (seconds)
 }
 
 interface Post {
 	id: string;
+
 	author: {
+		uid: string;
 		name: string;
 		username: string;
 		avatar: string;
 		verified: boolean;
 	};
+
 	content: string;
 	media?: PostMedia[];
 	tags: string[];
-	likes: number;
-	comments: number;
-	shares: number;
-	timestamp: string;
-	liked?: boolean;
-	saved?: boolean;
+
+	likesCount: number;
+	commentsCount: number;
+	sharesCount: number;
+
+	createdAt: Date | number; // Date.now() timestamp
 }
 
 const samplePosts: Post[] = [
 	{
 		id: "1",
 		author: {
+			uid: "user1",
 			name: "Avery Kim",
 			username: "@averykim",
 			avatar: "/developer-avatar-male.jpg",
@@ -92,16 +99,15 @@ const samplePosts: Post[] = [
 			},
 		],
 		tags: ["#WebDev", "#Startup", "#Hiring"],
-		likes: 42,
-		comments: 8,
-		shares: 5,
-		timestamp: "2h ago",
-		liked: false,
-		saved: false,
+		likesCount: 42,
+		commentsCount: 8,
+		sharesCount: 5,
+		createdAt: Date.now() - 2 * 60 * 60 * 1000, // 2 hours ago
 	},
 	{
 		id: "2",
 		author: {
+			uid: "user2",
 			name: "Devon Singh",
 			username: "@devonsingh",
 			avatar: "/developer-avatar-glasses.png",
@@ -116,16 +122,15 @@ const samplePosts: Post[] = [
 			},
 		],
 		tags: ["#AI", "#Hackathon", "#EdTech"],
-		likes: 89,
-		comments: 15,
-		shares: 23,
-		timestamp: "4h ago",
-		liked: true,
-		saved: false,
+		likesCount: 89,
+		commentsCount: 15,
+		sharesCount: 23,
+		createdAt: Date.now() - 4 * 60 * 60 * 1000, // 4 hours ago
 	},
 	{
 		id: "3",
 		author: {
+			uid: "user3",
 			name: "Maya Lopez",
 			username: "@mayalopez",
 			avatar: "/creative-developer-avatar-female.jpg",
@@ -140,16 +145,15 @@ const samplePosts: Post[] = [
 			},
 		],
 		tags: ["#Music", "#Productivity", "#DevLife"],
-		likes: 156,
-		comments: 34,
-		shares: 12,
-		timestamp: "6h ago",
-		liked: false,
-		saved: true,
+		likesCount: 156,
+		commentsCount: 34,
+		sharesCount: 12,
+		createdAt: Date.now() - 6 * 60 * 60 * 1000, // 6 hours ago
 	},
 	{
 		id: "4",
 		author: {
+			uid: "user4",
 			name: "Jordan Chen",
 			username: "@jordanchen",
 			avatar: "/tech-lead-avatar.png",
@@ -175,12 +179,10 @@ const samplePosts: Post[] = [
 			},
 		],
 		tags: ["#OpenSource", "#Milestone", "#Community"],
-		likes: 234,
-		comments: 45,
-		shares: 67,
-		timestamp: "8h ago",
-		liked: false,
-		saved: false,
+		likesCount: 234,
+		commentsCount: 45,
+		sharesCount: 67,
+		createdAt: Date.now() - 8 * 60 * 60 * 1000, // 8 hours ago
 	},
 ];
 
@@ -314,9 +316,9 @@ function MediaItem({ media }: { media: PostMedia }) {
 }
 
 function PostCard({ post }: { post: Post }) {
-	const [liked, setLiked] = useState(post.liked);
-	const [saved, setSaved] = useState(post.saved);
-	const [likeCount, setLikeCount] = useState(post.likes);
+	const [liked, setLiked] = useState(false);
+	const [saved, setSaved] = useState(false);
+	const [likeCount, setLikeCount] = useState(post.likesCount);
 
 	const handleLike = () => {
 		setLiked(!liked);
@@ -351,7 +353,11 @@ function PostCard({ post }: { post: Post }) {
 						<div className="flex items-center gap-2 text-sm text-muted-foreground font-mono">
 							<span>{post.author.username}</span>
 							<span>·</span>
-							<span>{post.timestamp}</span>
+							<span>
+								{post.createdAt instanceof Date
+									? post.createdAt.toLocaleDateString()
+									: new Date(post.createdAt).toLocaleDateString()}
+							</span>
 						</div>
 					</div>
 				</div>
@@ -406,14 +412,14 @@ function PostCard({ post }: { post: Post }) {
 						size="sm"
 						className="gap-2 font-mono text-xs text-muted-foreground hover:text-foreground">
 						<MessageCircle className="w-4 h-4" />
-						{post.comments}
+						{post.commentsCount}
 					</Button>
 					<Button
 						variant="ghost"
 						size="sm"
 						className="gap-2 font-mono text-xs text-muted-foreground hover:text-foreground">
 						<Share2 className="w-4 h-4" />
-						{post.shares}
+						{post.sharesCount}
 					</Button>
 				</div>
 				<Button
