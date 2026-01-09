@@ -6,18 +6,15 @@ import { Testimonials } from "@/components/testimonials"
 import { Footer } from "@/components/footer"
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { auth } from "@/lib/firebase";
 
 export default function Page() {
   const router = useRouter();
 
   useEffect(() => {
-    if(typeof window !== 'undefined') {
-      const username = localStorage.getItem("username");
-
-      if(username) {
-        router.push("/home");
-      }
-      return;
+    const user = auth.currentUser;
+    if (user) {
+      router.push("/home");
     }
   }, []);
   return (
