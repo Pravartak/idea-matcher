@@ -50,6 +50,10 @@ export default async function PublicProfile({
 		}
 	}
 
+	if (!loggedInUserUid) {
+		return <RedirectToSignup />;
+	}
+
 	console.log("PUBLIC PROFILE USERNAME:", decodedUsername);
 
 	if (!decodedUsername) {
@@ -77,9 +81,6 @@ export default async function PublicProfile({
 	}
 
 	if (!userData) {
-		if (!loggedInUserUid) {
-			return <RedirectToSignup />;
-		}
 		return notFound();
 	}
 

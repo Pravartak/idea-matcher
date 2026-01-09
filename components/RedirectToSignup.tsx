@@ -11,14 +11,14 @@ export default function RedirectToSignup() {
 		toast.error("User not found. Redirecting to signup...");
 		const timer = setTimeout(() => {
 			router.push("/signup");
-		}, 5000);
+		}, 3000);
 
 		return () => clearTimeout(timer);
 	}, [router]);
 
 	return (
 		<div className="flex h-screen w-full items-center justify-center">
-			<p>User not found. Redirecting to signup in 5 seconds...</p>
+			<p>Please login before visiting this profile. Redirecting to signup in 3 seconds...</p>
 		</div>
 	);
 }
