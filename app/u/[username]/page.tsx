@@ -16,6 +16,7 @@ import ProfileActions from "@/components/profile/ProfileActions";
 import { getAuth } from "firebase-admin/auth";
 import { cookies } from "next/headers";
 import { customInitApp } from "@/lib/firebase-admin";
+import RedirectToSignup from "@/components/RedirectToSignup";
 
 // const user = userData as User["user"];
 
@@ -76,6 +77,9 @@ export default async function PublicProfile({
 	}
 
 	if (!userData) {
+		if (!loggedInUserUid) {
+			return <RedirectToSignup />;
+		}
 		return notFound();
 	}
 
