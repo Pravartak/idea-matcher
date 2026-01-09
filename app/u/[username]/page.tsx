@@ -47,12 +47,13 @@ export default async function PublicProfile({
 		} catch (e) {
 			// Session cookie is invalid, treat as logged out.
 			loggedInUserUid = null;
+			<RedirectToSignup />;
 		}
 	}
 
-	if (!loggedInUserUid) {
-		return <RedirectToSignup />;
-	}
+	// if (!loggedInUserUid) {
+	// 	return <RedirectToSignup />;
+	// }
 
 	console.log("PUBLIC PROFILE USERNAME:", decodedUsername);
 
