@@ -7,16 +7,19 @@ import { Footer } from "@/components/footer"
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { auth } from "@/lib/firebase";
+import { onAuthStateChanged } from "firebase/auth";
 
 export default function Page() {
   const router = useRouter();
 
   useEffect(() => {
-    const user = auth.currentUser;
-    if (user) {
-      router.push("/home");
-    }
-  }, []);
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        router.push("/home");
+      }
+    });
+    return () => unsubscribe();
+  }, [router]);
   return (
     <>
       <Navbar />

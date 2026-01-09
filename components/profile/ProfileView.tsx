@@ -146,30 +146,6 @@ export default function ProfilePage({
 		setIsFollowing(!isFollowing);
 	};
 
-	const handleLike = async () => {
-		if (!posts) return;
-		const viewerUid = auth.currentUser?.uid;
-		if (!viewerUid) return;
-
-		const postsRef = doc(db, "Posts", posts[0].id); // Assuming liking the first post for demo
-		const likesRef = doc(db, "Posts", posts[0].id, "likes", viewerUid);
-
-		if (isLiked) {
-			await updateDoc(postsRef, { likesCount: increment(-1) });
-			await updateDoc(likesRef, { [viewerUid]: deleteField() });
-			// await updateDoc(doc(db, "users", viewerUid), { Following: increment(-1) });
-		} else {
-			await updateDoc(postsRef, { likesCount: increment(1) });
-			await setDoc(likesRef, { [viewerUid]: true }, { merge: true });
-			// await updateDoc(doc(db, "users", viewerUid), { Following: increment(1) });
-		}
-		setIsLiked(!isLiked);
-	};
-
-	const handleBookmark = () => {
-		setIsBookmarked(!isBookmarked);
-	};
-
 	return (
 		<div className="min-h-screen bg-background font-mono">
 			{/* Header */}
@@ -183,7 +159,7 @@ export default function ProfilePage({
 					<h1 className="text-sm font-medium sm:text-base">@{user.username}</h1>
 					{isOwner ? (
 						<Link
-							href="/settings"
+							href="/profile/settings"
 							className="flex h-8 w-8 items-center justify-center rounded-lg transition-colors hover:bg-accent sm:h-9 sm:w-9">
 							<Settings className="h-4 w-4 sm:h-5 sm:w-5" />
 						</Link>
