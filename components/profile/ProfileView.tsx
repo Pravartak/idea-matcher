@@ -98,11 +98,11 @@ export default function ProfilePage({
 			await navigator.share({
 				title: `${user.Name} (@${user.username}) - IdeaMatcher`,
 				text: user.Bio || "Check out this profile!",
-				url: `${window.location.origin}/u/${user.username}`,
+				url: `${window.location.origin}/u/${user.uid}`,
 			});
 		} else {
 			navigator.clipboard.writeText(
-				`${window.location.origin}/u/${user.username}`
+				`${window.location.origin}/u/${user.uid}`
 			);
 			alert("Profile link copied to clipboard!");
 		}
