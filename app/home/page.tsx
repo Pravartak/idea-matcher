@@ -29,9 +29,19 @@ import {
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { db } from "@/lib/firebase";
-import { doc, getDoc } from "firebase/firestore";
+import {
+	collection,
+	doc,
+	getDoc,
+	getDocs,
+	limit,
+	orderBy,
+	query,
+	where,
+} from "firebase/firestore";
 import { useRouter } from "next/navigation";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
+import { Post, PostCard } from "@/components/postComponents/PostComponents";
 
 const navItems = [
 	{ icon: Home, label: "Home", href: "/home", active: true },
@@ -48,403 +58,14 @@ const secondaryNavItems = [
 	{ icon: Bell, label: "Notifications", href: "/notifications", badge: true },
 ];
 
-interface PostMedia {
-	type: "image" | "video" | "audio";
-	url: string;
-
-	alt?: string; // for images (accessibility)
-	thumbnail?: string; // for video/audio preview
-	duration?: number; // for audio/video (seconds)
-}
-
-interface Post {
-	id: string;
-
-	author: {
-		uid: string;
-		name: string;
-		username: string;
-		avatar: string;
-		verified: boolean;
-	};
-
-	content: string;
-	media?: PostMedia[];
-	tags: string[];
-
-	likesCount: number;
-	commentsCount: number;
-	sharesCount: number;
-
-	createdAt: Date | number; // Date.now() timestamp
-}
-
-const samplePosts: Post[] = [
-	{
-		id: "1",
-		author: {
-			uid: "user1",
-			name: "Avery Kim",
-			username: "@averykim",
-			avatar: "/developer-avatar-male.jpg",
-			verified: true,
-		},
-		content:
-			"Just shipped our MVP! Looking for a backend developer to help scale our infrastructure. We're building a collaborative coding platform for students. DM if interested!",
-		media: [
-			{
-				type: "image",
-				url: "/coding-dashboard-interface-dark.jpg",
-				alt: "Project screenshot",
-			},
-		],
-		tags: ["#WebDev", "#Startup", "#Hiring"],
-		likesCount: 42,
-		commentsCount: 8,
-		sharesCount: 5,
-		createdAt: Date.now() - 2 * 60 * 60 * 1000, // 2 hours ago
-	},
-	{
-		id: "2",
-		author: {
-			uid: "user2",
-			name: "Devon Singh",
-			username: "@devonsingh",
-			avatar: "/developer-avatar-glasses.png",
-			verified: true,
-		},
-		content:
-			"Excited to announce our hackathon team is complete! We're building an AI-powered study assistant. Check out our demo video below.",
-		media: [
-			{
-				type: "video",
-				url: "/ai-study-assistant-demo-video-thumbnail.jpg",
-			},
-		],
-		tags: ["#AI", "#Hackathon", "#EdTech"],
-		likesCount: 89,
-		commentsCount: 15,
-		sharesCount: 23,
-		createdAt: Date.now() - 4 * 60 * 60 * 1000, // 4 hours ago
-	},
-	{
-		id: "3",
-		author: {
-			uid: "user3",
-			name: "Maya Lopez",
-			username: "@mayalopez",
-			avatar: "/creative-developer-avatar-female.jpg",
-			verified: false,
-		},
-		content:
-			"Working on some ambient music for focus sessions. Would love feedback from other developers on what helps you concentrate while coding!",
-		media: [
-			{
-				type: "audio",
-				url: "/audio-sample.mp3",
-			},
-		],
-		tags: ["#Music", "#Productivity", "#DevLife"],
-		likesCount: 156,
-		commentsCount: 34,
-		sharesCount: 12,
-		createdAt: Date.now() - 6 * 60 * 60 * 1000, // 6 hours ago
-	},
-	{
-		id: "4",
-		author: {
-			uid: "user4",
-			name: "Jordan Chen",
-			username: "@jordanchen",
-			avatar: "/tech-lead-avatar.png",
-			verified: true,
-		},
-		content:
-			"Our open source project just hit 1000 stars! Huge thanks to all contributors. Here are some highlights from our journey.",
-		media: [
-			{
-				type: "image",
-				url: "/github-stars-celebration-dark.jpg",
-				alt: "GitHub milestone",
-			},
-			{
-				type: "image",
-				url: "/team-collaboration-coding.jpg",
-				alt: "Team working",
-			},
-			{
-				type: "image",
-				url: "/code-review-interface-dark.jpg",
-				alt: "Code review",
-			},
-		],
-		tags: ["#OpenSource", "#Milestone", "#Community"],
-		likesCount: 234,
-		commentsCount: 45,
-		sharesCount: 67,
-		createdAt: Date.now() - 8 * 60 * 60 * 1000, // 8 hours ago
-	},
-];
-
-function MediaCarousel({ media }: { media: PostMedia[] }) {
-	const [currentIndex, setCurrentIndex] = useState(0);
-
-	if (media.length === 1) {
-		return <MediaItem media={media[0]} />;
-	}
-
-	return (
-		<div className="relative">
-			<MediaItem media={media[currentIndex]} />
-			{media.length > 1 && (
-				<>
-					<button
-						onClick={() =>
-							setCurrentIndex((prev) =>
-								prev > 0 ? prev - 1 : media.length - 1
-							)
-						}
-						className="absolute left-2 top-1/2 -translate-y-1/2 p-1 bg-background/80 rounded-full hover:bg-background transition-colors">
-						<ChevronLeft className="w-5 h-5" />
-					</button>
-					<button
-						onClick={() =>
-							setCurrentIndex((prev) =>
-								prev < media.length - 1 ? prev + 1 : 0
-							)
-						}
-						className="absolute right-2 top-1/2 -translate-y-1/2 p-1 bg-background/80 rounded-full hover:bg-background transition-colors">
-						<ChevronRight className="w-5 h-5" />
-					</button>
-					<div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
-						{media.map((_, idx) => (
-							<span
-								key={idx}
-								className={`w-2 h-2 rounded-full transition-colors ${
-									idx === currentIndex ? "bg-primary" : "bg-muted-foreground/50"
-								}`}
-							/>
-						))}
-					</div>
-				</>
-			)}
-		</div>
-	);
-}
-
-function MediaItem({ media }: { media: PostMedia }) {
-	const [isPlaying, setIsPlaying] = useState(false);
-	const [isMuted, setIsMuted] = useState(true);
-
-	if (media.type === "image") {
-		return (
-			<img
-				src={media.url || "/placeholder.svg"}
-				alt={media.alt || "Post image"}
-				className="w-full h-auto rounded-lg object-cover max-h-96"
-			/>
-		);
-	}
-
-	if (media.type === "video") {
-		return (
-			<div className="relative rounded-lg overflow-hidden bg-secondary">
-				<img
-					src={media.url || "/placeholder.svg"}
-					alt="Video thumbnail"
-					className="w-full h-auto object-cover max-h-96"
-				/>
-				<div className="absolute inset-0 flex items-center justify-center">
-					<button
-						onClick={() => setIsPlaying(!isPlaying)}
-						className="p-4 bg-primary/90 rounded-full hover:bg-primary transition-colors">
-						{isPlaying ? (
-							<Pause className="w-6 h-6" />
-						) : (
-							<Play className="w-6 h-6 ml-1" />
-						)}
-					</button>
-				</div>
-				<button
-					onClick={() => setIsMuted(!isMuted)}
-					className="absolute bottom-3 right-3 p-2 bg-background/80 rounded-full hover:bg-background transition-colors">
-					{isMuted ? (
-						<VolumeX className="w-4 h-4" />
-					) : (
-						<Volume2 className="w-4 h-4" />
-					)}
-				</button>
-			</div>
-		);
-	}
-
-	if (media.type === "audio") {
-		return (
-			<div className="flex items-center gap-4 p-4 bg-secondary rounded-lg">
-				<button
-					onClick={() => setIsPlaying(!isPlaying)}
-					className="p-3 bg-primary rounded-full hover:bg-primary/80 transition-colors">
-					{isPlaying ? (
-						<Pause className="w-5 h-5" />
-					) : (
-						<Play className="w-5 h-5 ml-0.5" />
-					)}
-				</button>
-				<div className="flex-1">
-					<div className="h-1 bg-muted rounded-full overflow-hidden">
-						<div className="h-full w-1/3 bg-primary rounded-full" />
-					</div>
-					<div className="flex justify-between mt-1 font-mono text-xs text-muted-foreground">
-						<span>1:24</span>
-						<span>3:45</span>
-					</div>
-				</div>
-				<button
-					onClick={() => setIsMuted(!isMuted)}
-					className="p-2 hover:bg-muted rounded-full transition-colors">
-					{isMuted ? (
-						<VolumeX className="w-4 h-4" />
-					) : (
-						<Volume2 className="w-4 h-4" />
-					)}
-				</button>
-			</div>
-		);
-	}
-
-	return null;
-}
-
-function PostCard({ post }: { post: Post }) {
-	const [liked, setLiked] = useState(false);
-	const [saved, setSaved] = useState(false);
-	const [likeCount, setLikeCount] = useState(post.likesCount);
-
-	const handleLike = () => {
-		setLiked(!liked);
-		setLikeCount((prev) => (liked ? prev - 1 : prev + 1));
-	};
-
-	return (
-		<article className="bg-card border border-border rounded-xl p-5">
-			{/* Post Header */}
-			<div className="flex items-start justify-between mb-4">
-				<div className="flex items-center gap-3">
-					<Avatar className="w-11 h-11">
-						<AvatarImage
-							src={post.author.avatar || "/placeholder.svg"}
-							alt={post.author.name}
-						/>
-						<AvatarFallback className="font-mono">
-							{post.author.name[0]}
-						</AvatarFallback>
-					</Avatar>
-					<div>
-						<div className="flex items-center gap-2">
-							<span className="font-mono font-medium text-foreground">
-								{post.author.name}
-							</span>
-							{post.author.verified && (
-								<span className="px-1.5 py-0.5 bg-primary/20 text-primary text-xs font-mono rounded">
-									Verified
-								</span>
-							)}
-						</div>
-						<div className="flex items-center gap-2 text-sm text-muted-foreground font-mono">
-							<span>{post.author.username}</span>
-							<span>·</span>
-							<span>
-								{post.createdAt instanceof Date
-									? post.createdAt.toLocaleDateString()
-									: new Date(post.createdAt).toLocaleDateString()}
-							</span>
-						</div>
-					</div>
-				</div>
-				<Button
-					variant="ghost"
-					size="icon"
-					className="text-muted-foreground hover:text-foreground">
-					<MoreHorizontal className="w-5 h-5" />
-				</Button>
-			</div>
-
-			{/* Post Content */}
-			<p className="font-mono text-sm text-foreground leading-relaxed mb-4">
-				{post.content}
-			</p>
-
-			{/* Media */}
-			{post.media && post.media.length > 0 && (
-				<div className="mb-4">
-					<MediaCarousel media={post.media} />
-				</div>
-			)}
-
-			{/* Tags */}
-			<div className="flex flex-wrap gap-2 mb-4">
-				{post.tags.map((tag) => (
-					<span
-						key={tag}
-						className="px-2 py-1 bg-secondary text-muted-foreground text-xs font-mono rounded hover:bg-muted hover:text-foreground cursor-pointer transition-colors">
-						{tag}
-					</span>
-				))}
-			</div>
-
-			{/* Actions */}
-			<div className="flex items-center justify-between pt-3 border-t border-border">
-				<div className="flex items-center gap-1">
-					<Button
-						variant="ghost"
-						size="sm"
-						onClick={handleLike}
-						className={`gap-2 font-mono text-xs ${
-							liked
-								? "text-red-500 hover:text-red-400"
-								: "text-muted-foreground hover:text-foreground"
-						}`}>
-						<Heart className={`w-4 h-4 ${liked ? "fill-current" : ""}`} />
-						{likeCount}
-					</Button>
-					<Button
-						variant="ghost"
-						size="sm"
-						className="gap-2 font-mono text-xs text-muted-foreground hover:text-foreground">
-						<MessageCircle className="w-4 h-4" />
-						{post.commentsCount}
-					</Button>
-					<Button
-						variant="ghost"
-						size="sm"
-						className="gap-2 font-mono text-xs text-muted-foreground hover:text-foreground">
-						<Share2 className="w-4 h-4" />
-						{post.sharesCount}
-					</Button>
-				</div>
-				<Button
-					variant="ghost"
-					size="sm"
-					onClick={() => setSaved(!saved)}
-					className={`${
-						saved
-							? "text-primary"
-							: "text-muted-foreground hover:text-foreground"
-					}`}>
-					<Bookmark className={`w-4 h-4 ${saved ? "fill-current" : ""}`} />
-				</Button>
-			</div>
-		</article>
-	);
-}
-
-export default function FeedPage() {
+export default function FeedPage({ posts }: { posts: Post[] }) {
 	const router = useRouter();
 
 	const [sidebarExpanded, setSidebarExpanded] = useState(false);
 	const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
 	const [userData, setUserData] = useState<any | null>(null);
+	const [postsData, setPostsData] = useState<Post[] | null>(null);
 
 	useEffect(() => {
 		const auth = getAuth();
@@ -463,7 +84,55 @@ export default function FeedPage() {
 				return;
 			}
 
-			setUserData(docSnap.data());
+			const userData = docSnap.data();
+			setUserData(userData);
+			const interests = userData?.interests || [];
+
+			let fetchedPosts: Post[] = [];
+
+			if (interests.length > 0) {
+				const q = query(
+					collection(db, "Posts"),
+					where("tags", "array-contains-any", interests.slice(0, 10)),
+					limit(50)
+				);
+
+				const snap = await getDocs(q);
+				fetchedPosts = snap.docs.map((doc) => ({
+					id: doc.id,
+					...doc.data(),
+				})) as Post[];
+			}
+
+			if (fetchedPosts.length > 0) {
+				fetchedPosts.sort((a, b) => {
+					const aScore = (a.tags || []).filter((t: string) =>
+						interests.includes(t)
+					).length;
+					const bScore = (b.tags || []).filter((t: string) =>
+						interests.includes(t)
+					).length;
+
+					if (aScore === bScore) {
+						return ((b.createdAt as any)?.seconds || 0) - ((a.createdAt as any)?.seconds || 0);
+					}
+					return bScore - aScore;
+				});
+			} else {
+				const fallbackQuery = query(
+					collection(db, "Posts"),
+					orderBy("createdAt", "desc"),
+					limit(20)
+				);
+				const fallbackSnap = await getDocs(fallbackQuery);
+
+				fetchedPosts = fallbackSnap.docs.map((doc) => ({
+					id: doc.id,
+					...doc.data(),
+				})) as Post[];
+			}
+
+			setPostsData(fetchedPosts);
 		});
 		return () => unsubscribe();
 	}, []);
@@ -588,7 +257,13 @@ export default function FeedPage() {
 						title={!showSidebarText ? "Your Profile" : undefined}>
 						<Avatar className="w-9 h-9 flex-shrink-0">
 							<AvatarImage src={userData?.Avatar} />
-							<AvatarFallback className="font-mono">U</AvatarFallback>
+							<AvatarFallback className="font-mono">
+								{(userData?.Name ?? "")
+									.split(" ")
+									.filter(Boolean)
+									.map((n: string) => n[0])
+									.join("") || "?"}
+							</AvatarFallback>
 						</Avatar>
 						{showSidebarText && (
 							<div className="flex-1 min-w-0">
@@ -623,7 +298,7 @@ export default function FeedPage() {
 
 				{/* Feed */}
 				<div className="p-4 md:p-6 space-y-4 max-w-2xl mx-auto">
-					{samplePosts.map((post) => (
+					{postsData?.map((post) => (
 						<PostCard key={post.id} post={post} />
 					))}
 				</div>
