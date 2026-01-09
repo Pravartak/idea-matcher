@@ -27,7 +27,14 @@ import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { User } from "../types/user";
 import { auth, db } from "@/lib/firebase";
-import { updateDoc, doc, setDoc, deleteField, increment, getDoc } from "firebase/firestore";
+import {
+	updateDoc,
+	doc,
+	setDoc,
+	deleteField,
+	increment,
+	getDoc,
+} from "firebase/firestore";
 import { useRouter } from "next/navigation";
 import { Post, PostCard } from "../postComponents/PostComponents";
 
@@ -101,9 +108,7 @@ export default function ProfilePage({
 				url: `${window.location.origin}/u/${user.uid}`,
 			});
 		} else {
-			navigator.clipboard.writeText(
-				`${window.location.origin}/u/${user.uid}`
-			);
+			navigator.clipboard.writeText(`${window.location.origin}/u/${user.uid}`);
 			alert("Profile link copied to clipboard!");
 		}
 		setIsSharing(true);
@@ -129,7 +134,9 @@ export default function ProfilePage({
 		if (isFollowing) {
 			await updateDoc(userRef, { Followers: increment(-1) });
 			await updateDoc(followersRef, { [viewerUid]: deleteField() });
-			await updateDoc(doc(db, "users", viewerUid), { Following: increment(-1) });
+			await updateDoc(doc(db, "users", viewerUid), {
+				Following: increment(-1),
+			});
 		} else {
 			await updateDoc(userRef, { Followers: increment(1) });
 			await setDoc(followersRef, { [viewerUid]: true }, { merge: true });
@@ -476,15 +483,27 @@ export default function ProfilePage({
 							<h3 className="mb-2 text-sm font-semibold sm:text-base">
 								No posts yet
 							</h3>
-							<p className="mb-4 text-xs text-muted-foreground sm:text-sm">
-								Share what you're building, your ideas, or collaborate with
-								other developers.
-							</p>
-							<Button
-								asChild
-								className="bg-primary text-xs font-medium text-primary-foreground hover:bg-primary/90 sm:text-sm">
-								<Link href="/create-post">Create your first post</Link>
-							</Button>
+							{isOwner ? (
+								<>
+									<p className="mb-4 text-xs text-muted-foreground sm:text-sm">
+										Share what you're building, your ideas, or collaborate with
+										other developers.
+									</p>
+									<Button
+										asChild
+										className="bg-primary text-xs font-medium text-primary-foreground hover:bg-primary/90 sm:text-sm">
+										<Link href="/create-post">Create your first post</Link>
+									</Button>
+									:{" "}
+									<p className="text-xs text-muted-foreground sm:text-sm">
+										This user hasn't posted anything yet.
+									</p>
+								</>
+							) : (
+								<p className="text-xs text-muted-foreground sm:text-sm">
+									This user hasn't posted anything yet.
+								</p>
+							)}
 						</div>
 					</div>
 				)}
