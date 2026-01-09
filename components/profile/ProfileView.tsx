@@ -494,10 +494,6 @@ export default function ProfilePage({
 										className="bg-primary text-xs font-medium text-primary-foreground hover:bg-primary/90 sm:text-sm">
 										<Link href="/create-post">Create your first post</Link>
 									</Button>
-									:{" "}
-									<p className="text-xs text-muted-foreground sm:text-sm">
-										This user hasn't posted anything yet.
-									</p>
 								</>
 							) : (
 								<p className="text-xs text-muted-foreground sm:text-sm">
