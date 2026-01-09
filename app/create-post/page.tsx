@@ -185,34 +185,33 @@ export default function CreatePostPage() {
 
 	async function uploadPostMedia(
 		postId: string,
-		media: { file: File; type: "image" | "video" | "audio" }[]
+		media: { file: File; type: "image" | "video" | "audio"; alt?: string }[]
 	) {
-		const uploadedMedia = [];
-
-		for (const item of media) {
+		const uploadPromises = media.map(async (item) => {
 			const file = item.file;
-
 			const storageRef = ref(
 				storage,
 				`Posts/${postId}/${Date.now()}-${file.name}`
 			);
-
 			await uploadBytes(storageRef, file);
-
 			const url = await getDownloadURL(storageRef);
-
-			uploadedMedia.push({
+			return {
 				type: item.type,
 				url,
-			});
-		}
+				alt: item.alt || file.name,
+			};
+		});
 
-		return uploadedMedia;
+		return Promise.all(uploadPromises);
 	}
 
 	const handleSubmit = async () => {
 		if (!formData.content.trim()) {
 			alert("Post content cannot be empty!");
+			return;
+		}
+
+		if (!userData) {
 			return;
 		}
 
