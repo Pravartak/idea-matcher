@@ -21,14 +21,15 @@ import {
 	ChevronRight,
 	ChevronLeft,
 } from "lucide-react";
+// import ProfileActions from "./ProfileActions";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { User } from "../types/user";
-import { db } from "@/lib/firebase";
-import { updateDoc, doc } from "firebase/firestore";
+import { auth, db } from "@/lib/firebase";
+import { updateDoc, doc, setDoc, deleteField, increment, getDoc } from "firebase/firestore";
 import { useRouter } from "next/navigation";
-import { Post, MediaCarousel } from "../postComponents/PostComponents";
+import { Post, PostCard } from "../postComponents/PostComponents";
 
 interface ProfileViewProps {
 	user: User["user"];
@@ -41,11 +42,6 @@ export default function ProfilePage({
 	isOwner,
 	posts,
 }: ProfileViewProps) {
-	const [isEditingLookingFor, setIsEditingLookingFor] = useState(false);
-	const [selectedRoles, setSelectedRoles] = useState<string[]>(
-		user.lookingToConnectWith || []
-	);
-
 	const router = useRouter();
 
 	useEffect(() => {
@@ -66,24 +62,29 @@ export default function ProfilePage({
 		};
 	}, []);
 
-	const ALL_ROLES = [
-		"Frontend Developer",
-		"Backend Developer",
-		"Fullstack Developer",
-		"UI/UX Designer",
-		"Product Manager",
-		"DevOps Engineer",
-		"Data Scientist",
-		"Mobile Developer",
-		"QA Engineer",
-		"Project Manager",
-		"Researcher",
-		"Entrepreneur",
-	];
-
 	const [isConnected, setIsConnected] = useState(false);
 	const [isFollowing, setIsFollowing] = useState(false);
 	const [isSharing, setIsSharing] = useState(false);
+	const [isLiked, setIsLiked] = useState(false);
+	const [isBookmarked, setIsBookmarked] = useState(false);
+
+	useEffect(() => {
+		if (isOwner) return;
+		const checkFollowing = async () => {
+			const currentUser = auth.currentUser;
+			if (currentUser && user.uid) {
+				const followersRef = doc(db, "followers", user.uid);
+				const docSnap = await getDoc(followersRef);
+				if (docSnap.exists() && docSnap.data()[currentUser.uid]) {
+					setIsFollowing(true);
+				} else {
+					setIsFollowing(false);
+				}
+			}
+		};
+		const unsubscribe = auth.onAuthStateChanged(checkFollowing);
+		return () => unsubscribe();
+	}, [user.uid, isOwner]);
 
 	const handleShare = async () => {
 		if (isSharing) return;
@@ -97,14 +98,69 @@ export default function ProfilePage({
 			await navigator.share({
 				title: `${user.Name} (@${user.username}) - IdeaMatcher`,
 				text: user.Bio || "Check out this profile!",
-				url: `${window.location.origin}/u/${user.uid}`,
+				url: `${window.location.origin}/u/${user.username}`,
 			});
 		} else {
-			navigator.clipboard.writeText(`${window.location.origin}/u/${user.uid}`);
+			navigator.clipboard.writeText(
+				`${window.location.origin}/u/${user.username}`
+			);
 			alert("Profile link copied to clipboard!");
 		}
 		setIsSharing(true);
 		setTimeout(() => setIsSharing(false), 2000);
+	};
+
+	const handleConnect = async () => {
+		if (!user.uid) return;
+		await updateDoc(doc(db, "users", user.uid!), {
+			Connections: isConnected ? user.Connections! - 1 : user.Connections! + 1,
+		});
+		setIsConnected(!isConnected);
+	};
+
+	const handleFollow = async () => {
+		if (!user.uid) return;
+		const viewerUid = auth.currentUser?.uid;
+		if (!viewerUid) return;
+
+		const userRef = doc(db, "users", user.uid);
+		const followersRef = doc(db, "followers", user.uid);
+
+		if (isFollowing) {
+			await updateDoc(userRef, { Followers: increment(-1) });
+			await updateDoc(followersRef, { [viewerUid]: deleteField() });
+			await updateDoc(doc(db, "users", viewerUid), { Following: increment(-1) });
+		} else {
+			await updateDoc(userRef, { Followers: increment(1) });
+			await setDoc(followersRef, { [viewerUid]: true }, { merge: true });
+			await updateDoc(doc(db, "users", viewerUid), { Following: increment(1) });
+		}
+
+		setIsFollowing(!isFollowing);
+	};
+
+	const handleLike = async () => {
+		if (!posts) return;
+		const viewerUid = auth.currentUser?.uid;
+		if (!viewerUid) return;
+
+		const postsRef = doc(db, "Posts", posts[0].id); // Assuming liking the first post for demo
+		const likesRef = doc(db, "Posts", posts[0].id, "likes", viewerUid);
+
+		if (isLiked) {
+			await updateDoc(postsRef, { likesCount: increment(-1) });
+			await updateDoc(likesRef, { [viewerUid]: deleteField() });
+			// await updateDoc(doc(db, "users", viewerUid), { Following: increment(-1) });
+		} else {
+			await updateDoc(postsRef, { likesCount: increment(1) });
+			await setDoc(likesRef, { [viewerUid]: true }, { merge: true });
+			// await updateDoc(doc(db, "users", viewerUid), { Following: increment(1) });
+		}
+		setIsLiked(!isLiked);
+	};
+
+	const handleBookmark = () => {
+		setIsBookmarked(!isBookmarked);
 	};
 
 	return (
@@ -213,7 +269,7 @@ export default function ProfilePage({
 							{isConnected ? "Connected" : "Connect"}
 						</Button>
 						<Button
-							onClick={() => setIsFollowing(!isFollowing)}
+							onClick={handleFollow}
 							variant={isFollowing ? "outline" : "default"}
 							className={`flex-1 text-xs font-medium sm:text-sm ${
 								isFollowing
@@ -296,7 +352,7 @@ export default function ProfilePage({
 						Skills
 					</h3>
 					<div className="space-y-3">
-						<div>
+						<div className="rounded-lg border border-border bg-background/50 p-3">
 							<h4 className="mb-2 flex items-center gap-1.5 text-xs text-muted-foreground">
 								<Code2 className="h-3.5 w-3.5" />
 								Languages
@@ -311,7 +367,7 @@ export default function ProfilePage({
 								))}
 							</div>
 						</div>
-						<div>
+						<div className="rounded-lg border border-border bg-background/50 p-3">
 							<h4 className="mb-2 flex items-center gap-1.5 text-xs text-muted-foreground">
 								<Server className="h-3.5 w-3.5" />
 								Frameworks
@@ -326,7 +382,7 @@ export default function ProfilePage({
 								))}
 							</div>
 						</div>
-						<div>
+						<div className="rounded-lg border border-border bg-background/50 p-3">
 							<h4 className="mb-2 flex items-center gap-1.5 text-xs text-muted-foreground">
 								<Server className="h-3.5 w-3.5" />
 								Platforms
@@ -341,7 +397,7 @@ export default function ProfilePage({
 								))}
 							</div>
 						</div>
-						<div>
+						<div className="rounded-lg border border-border bg-background/50 p-3">
 							<h4 className="mb-2 flex items-center gap-1.5 text-xs text-muted-foreground">
 								<Wrench className="h-3.5 w-3.5" />
 								Tools
@@ -405,108 +461,7 @@ export default function ProfilePage({
 						</h3>
 						<div className="grid gap-4">
 							{posts.map((post) => (
-								<article
-									key={post.id}
-									className="bg-card border border-border rounded-xl p-5">
-									{/* Post Header */}
-									<div className="flex items-start justify-between mb-4">
-										<div className="flex items-center gap-3">
-											<Avatar className="w-11 h-11">
-												<AvatarImage
-													src={post.author?.avatar || "/placeholder.svg"}
-													alt={post.author?.name || "Idea Matcher"}
-												/>
-												<AvatarFallback className="font-mono">
-													{post.author?.name[0] || "U"}
-												</AvatarFallback>
-											</Avatar>
-											<div>
-												<div className="flex items-center gap-2">
-													<span className="font-mono font-medium text-foreground">
-														{post.author?.name || "Idea Matcher"}
-													</span>
-													{post.author.verified && (
-														<span className="px-1.5 py-0.5 bg-primary/20 text-primary text-xs font-mono rounded">
-															Verified
-														</span>
-													)}
-												</div>
-												<div className="flex items-center gap-2 text-sm text-muted-foreground font-mono">
-													<span>{post.author.username}</span>
-													<span>·</span>
-													<span>
-														{post.createdAt instanceof Date
-															? post.createdAt.toLocaleString()
-															: new Date(post.createdAt).toLocaleString()}
-														{/* {post.id.createdAt.toLocaleDateString()} */}
-													</span>
-												</div>
-											</div>
-										</div>
-										<Button
-											variant="ghost"
-											size="icon"
-											className="text-muted-foreground hover:text-foreground">
-											<MoreHorizontal className="w-5 h-5" />
-										</Button>
-									</div>
-
-									{/* Post Content */}
-									<p className="font-mono text-sm text-foreground leading-relaxed mb-4">
-										{post.content}
-									</p>
-
-									{/* Media */}
-									{post.media && post.media.length > 0 && (
-										<div className="mb-4">
-											<MediaCarousel media={post.media} />
-										</div>
-									)}
-
-									{/* Tags */}
-									<div className="flex flex-wrap gap-2 mb-4">
-										{post.tags?.map((tag: string) => (
-											<span
-												key={tag}
-												className="px-2 py-1 bg-secondary text-muted-foreground text-xs font-mono rounded hover:bg-muted hover:text-foreground cursor-pointer transition-colors">
-												{tag}
-											</span>
-										))}
-									</div>
-
-									{/* Actions */}
-									<div className="flex items-center justify-between pt-3 border-t border-border">
-										<div className="flex items-center gap-1">
-											<Button
-												variant="ghost"
-												size="sm"
-												className={`gap-2 font-mono text-xs text-muted-foreground hover:text-foreground`}>
-												<Heart className={`w-4 h-4`} />
-												{post.likesCount}
-											</Button>
-											<Button
-												variant="ghost"
-												size="sm"
-												className="gap-2 font-mono text-xs text-muted-foreground hover:text-foreground">
-												<MessageCircle className="w-4 h-4" />
-												{post.commentsCount}
-											</Button>
-											<Button
-												variant="ghost"
-												size="sm"
-												className="gap-2 font-mono text-xs text-muted-foreground hover:text-foreground">
-												<Share2 className="w-4 h-4" />
-												{post.sharesCount}
-											</Button>
-										</div>
-										<Button
-											variant="ghost"
-											size="sm"
-											className={`text-muted-foreground hover:text-foreground`}>
-											<Bookmark className={`w-4 h-4`} />
-										</Button>
-									</div>
-								</article>
+								<PostCard key={post.id} post={post} />
 							))}
 						</div>
 					</div>

@@ -7,8 +7,17 @@ import {
 	Play,
 	VolumeX,
 	Volume2,
+	MoreHorizontal,
+	Heart,
+	MessageCircle,
+	Share2,
+	Bookmark,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
+import { auth, db } from "@/lib/firebase";
+import { updateDoc, doc, setDoc, increment, getDoc, deleteDoc } from "firebase/firestore";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 
 export interface PostMedia {
 	type: "image" | "video" | "audio";
@@ -147,7 +156,7 @@ export function MediaItem({ media }: { media: PostMedia }) {
 			<img
 				src={media.url || "/placeholder.svg"}
 				alt={media.alt || "Post image"}
-				className="w-full h-auto lg object-cover max-h-96"
+				className="w-full h-auto object-cover max-h-96 rounded-lg"
 			/>
 		);
 	}
@@ -232,3 +241,149 @@ export function MediaItem({ media }: { media: PostMedia }) {
 
 	return null;
 }
+
+export const PostCard = ({ post }: { post: Post }) => {
+	const [isLiked, setIsLiked] = useState(false);
+	const [isBookmarked, setIsBookmarked] = useState(false);
+	const [likesCount, setLikesCount] = useState(post.likesCount);
+	const viewerUid = auth.currentUser?.uid;
+
+	useEffect(() => {
+		if (!viewerUid) return;
+		const checkLike = async () => {
+			const likeRef = doc(db, "Posts", post.id, "likes", viewerUid);
+			const likeSnap = await getDoc(likeRef);
+			if (likeSnap.exists()) {
+				setIsLiked(true);
+			}
+		};
+		checkLike();
+	}, [post.id, viewerUid]);
+
+	const handleLike = async () => {
+		if (!viewerUid) return;
+
+		const postRef = doc(db, "Posts", post.id);
+		const likeRef = doc(db, "Posts", post.id, "likes", viewerUid);
+
+		if (isLiked) {
+			setLikesCount((prev) => prev - 1);
+			setIsLiked(false);
+			await updateDoc(postRef, { likesCount: increment(-1) });
+			await deleteDoc(likeRef);
+		} else {
+			setLikesCount((prev) => prev + 1);
+			setIsLiked(true);
+			await updateDoc(postRef, { likesCount: increment(1) });
+			await setDoc(likeRef, { [viewerUid]: true });
+		}
+	};
+
+	const handleBookmark = () => {
+		setIsBookmarked(!isBookmarked);
+	};
+
+	return (
+		<article className="bg-card border border-border rounded-xl p-5 min-w-0 overflow-hidden">
+			{/* Post Header */}
+			<div className="flex items-start justify-between mb-4">
+				<div className="flex items-center gap-3">
+					<Avatar className="w-11 h-11">
+						<AvatarImage
+							src={post.author?.avatar || "/placeholder.svg"}
+							alt={post.author?.name || "Idea Matcher"}
+						/>
+						<AvatarFallback className="font-mono">
+							{post.author?.name[0] || "U"}
+						</AvatarFallback>
+					</Avatar>
+					<div>
+						<div className="flex items-center gap-2">
+							<span className="font-mono font-medium text-foreground">
+								{post.author?.name || "Idea Matcher"}
+							</span>
+							{post.author.verified && (
+								<span className="px-1.5 py-0.5 bg-primary/20 text-primary text-xs font-mono rounded">
+									Verified
+								</span>
+							)}
+						</div>
+						<div className="flex items-center gap-2 text-sm text-muted-foreground font-mono">
+							<span>{post.author.username}</span>
+							<span>·</span>
+							<span>
+								{post.createdAt instanceof Date
+									? post.createdAt.toLocaleString()
+									: new Date(post.createdAt).toLocaleString()}
+							</span>
+						</div>
+					</div>
+				</div>
+				<Button
+					variant="ghost"
+					size="icon"
+					className="text-muted-foreground hover:text-foreground">
+					<MoreHorizontal className="w-5 h-5" />
+				</Button>
+			</div>
+
+			{/* Post Content */}
+			<p className="font-mono text-sm text-foreground leading-relaxed mb-4 break-words">
+				{post.content}
+			</p>
+
+			{/* Media */}
+			{post.media && post.media.length > 0 && (
+				<div className="mb-4">
+					<MediaCarousel media={post.media} />
+				</div>
+			)}
+
+			{/* Tags */}
+			<div className="flex flex-wrap gap-2 mb-4">
+				{post.tags?.map((tag: string) => (
+					<span
+						key={tag}
+						className="px-2 py-1 bg-secondary text-muted-foreground text-xs font-mono rounded hover:bg-muted hover:text-foreground cursor-pointer transition-colors">
+						{tag}
+					</span>
+				))}
+			</div>
+
+			{/* Actions */}
+			<div className="flex items-center justify-between pt-3 border-t border-border">
+				<div className="flex items-center gap-1">
+					<Button
+						variant="ghost"
+						size="sm"
+						onClick={handleLike}
+						className={`gap-2 font-mono text-xs ${isLiked ? "text-red-500 hover:text-red-600" : "text-muted-foreground hover:text-foreground"}`}>
+						<Heart className={`w-4 h-4 ${isLiked ? "fill-current" : ""}`} />
+						{likesCount}
+					</Button>
+					<Button
+						variant="ghost"
+						size="sm"
+						className="gap-2 font-mono text-xs text-muted-foreground hover:text-foreground">
+						<MessageCircle className="w-4 h-4" />
+						{post.commentsCount}
+					</Button>
+					<Button
+						variant="ghost"
+						size="sm"
+						className="gap-2 font-mono text-xs text-muted-foreground hover:text-foreground">
+						<Share2 className="w-4 h-4" />
+						{post.sharesCount}
+					</Button>
+				</div>
+				<Button
+					variant="ghost"
+					size="sm"
+					onClick={handleBookmark}
+					className={`${isBookmarked ? "text-primary hover:text-primary/90" : "text-muted-foreground hover:text-foreground"}`}>
+					<Bookmark className={`w-4 h-4 ${isBookmarked ? "fill-current" : ""}`} />
+				</Button>
+			</div>
+		</article>
+	);
+};
