@@ -49,7 +49,7 @@ export default function ProfilePage({
 	isOwner,
 	posts,
 }: ProfileViewProps) {
-	const router = useRouter();
+	// const router = useRouter();
 
 	useEffect(() => {
 		const meta = document.querySelector("meta[name='viewport']");
@@ -72,8 +72,8 @@ export default function ProfilePage({
 	const [isConnected, setIsConnected] = useState(false);
 	const [isFollowing, setIsFollowing] = useState(false);
 	const [isSharing, setIsSharing] = useState(false);
-	const [isLiked, setIsLiked] = useState(false);
-	const [isBookmarked, setIsBookmarked] = useState(false);
+	// const [isLiked, setIsLiked] = useState(false);
+	// const [isBookmarked, setIsBookmarked] = useState(false);
 	const [currentPosts, setCurrentPosts] = useState(posts);
 
 	useEffect(() => {
@@ -141,18 +141,19 @@ export default function ProfilePage({
 		const viewerUid = auth.currentUser?.uid;
 		if (!viewerUid) return;
 
-		const userRef = doc(db, "users", user.uid);
+		const targetUid = doc(db, "users", user.uid);
 		const followersRef = doc(db, "followers", user.uid);
 
+		if (viewerUid === user.uid) return alert("You cannot follow yourself!");
 		try {
 			if (isFollowing) {
-				await updateDoc(userRef, { Followers: increment(-1) });
+				await updateDoc(targetUid, { Followers: increment(-1) });
 				await updateDoc(followersRef, { [viewerUid]: deleteField() });
 				await updateDoc(doc(db, "users", viewerUid), {
 					Following: increment(-1),
 				});
 			} else {
-				await updateDoc(userRef, { Followers: increment(1) });
+				await updateDoc(targetUid, { Followers: increment(1) });
 				await setDoc(followersRef, { [viewerUid]: true }, { merge: true });
 				await updateDoc(doc(db, "users", viewerUid), { Following: increment(1) });
 			}
