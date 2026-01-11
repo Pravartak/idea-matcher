@@ -12,16 +12,24 @@ import {
 	MessageCircle,
 	Share2,
 	Bookmark,
+	Trash2,
+	UserMinus,
+	Flag,
+	Link as LinkIcon,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
-import { auth, db } from "@/lib/firebase";
-import { updateDoc, doc, setDoc, increment, getDoc, deleteDoc } from "firebase/firestore";
+import { auth, db, storage } from "@/lib/firebase";
+import { updateDoc, doc, setDoc, increment, getDoc, deleteDoc, deleteField } from "firebase/firestore";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { createPortal } from "react-dom";
+import { deleteObject, ref } from "firebase/storage";
 
 export interface PostMedia {
 	type: "image" | "video" | "audio";
 	url: string;
+	path: string; // storage path
 
 	alt?: string; // for images (accessibility)
 	thumbnail?: string; // for video/audio preview
@@ -242,11 +250,28 @@ export function MediaItem({ media }: { media: PostMedia }) {
 	return null;
 }
 
-export const PostCard = ({ post }: { post: Post }) => {
+export const PostCard = ({ post, onDelete }: { post: Post; onDelete?: (id: string) => void }) => {
 	const [isLiked, setIsLiked] = useState(false);
 	const [isBookmarked, setIsBookmarked] = useState(false);
+	const [isFollowing, setIsFollowing] = useState(false);
+	const [showDrawer, setShowDrawer] = useState(false);
 	const [likesCount, setLikesCount] = useState(post.likesCount);
 	const viewerUid = auth.currentUser?.uid;
+	const isOwner = viewerUid === post.authorUid;
+
+	useEffect(() => {
+		// Disable zoom for all pages
+		const meta = document.querySelector("meta[name='viewport']");
+		const content = "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0";
+		if (meta) {
+			meta.setAttribute("content", content);
+		} else {
+			const newMeta = document.createElement("meta");
+			newMeta.name = "viewport";
+			newMeta.content = content;
+			document.head.appendChild(newMeta);
+		}
+	}, []);
 
 	useEffect(() => {
 		if (!viewerUid) return;
@@ -256,9 +281,18 @@ export const PostCard = ({ post }: { post: Post }) => {
 			if (likeSnap.exists()) {
 				setIsLiked(true);
 			}
+
+			// Check if following
+			if (!isOwner) {
+				const followersRef = doc(db, "followers", post.authorUid);
+				const docSnap = await getDoc(followersRef);
+				if (docSnap.exists() && docSnap.data()[viewerUid]) {
+					setIsFollowing(true);
+				}
+			}
 		};
 		checkLike();
-	}, [post.id, viewerUid]);
+	}, [post.id, viewerUid, post.authorUid, isOwner]);
 
 	const handleLike = async () => {
 		if (!viewerUid) return;
@@ -283,11 +317,58 @@ export const PostCard = ({ post }: { post: Post }) => {
 		setIsBookmarked(!isBookmarked);
 	};
 
+	const handleDelete = async () => {
+		const confirmDelete = confirm("Are you sure you want to delete this post?");
+		if (!confirmDelete) return;
+
+		try {
+			if (post.media?.length) {
+				await Promise.all(
+					post.media.map((m) => {
+						if (!m.path) return Promise.resolve();
+						const mediaRef = ref(storage, m.path);
+						return deleteObject(mediaRef);
+					})
+				)
+			}
+
+			await deleteDoc(doc(db, "Posts", post.id));
+			if (onDelete) onDelete(post.id);
+			setShowDrawer(false);
+		} catch (error) {
+			console.error("Error deleting post:", error);
+			alert("Failed to delete post. Please try again.");
+		}
+	};
+
+	const handleUnfollow = async () => {
+		if (!viewerUid) return;
+
+		const userRef = doc(db, "users", post.authorUid);
+		const followersRef = doc(db, "followers", post.authorUid);
+		const viewerRef = doc(db, "users", viewerUid);
+
+		try {
+			await updateDoc(userRef, { Followers: increment(-1) });
+			await updateDoc(followersRef, { [viewerUid]: deleteField() });
+			await updateDoc(viewerRef, { Following: increment(-1) });
+			setIsFollowing(false);
+			setShowDrawer(false);
+		} catch (error) {
+			console.error("Error unfollowing:", error);
+		}
+	};
+
+	const handleCopyLink = () => {
+		navigator.clipboard.writeText(`${window.location.origin}/post/${post.id}`);
+		setShowDrawer(false);
+	};
+
 	return (
 		<article className="bg-card border border-border rounded-xl p-5 min-w-0 overflow-hidden">
 			{/* Post Header */}
 			<div className="flex items-start justify-between mb-4">
-				<div className="flex items-center gap-3">
+				<Link href={`/u/${post.authorUid}`} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
 					<Avatar className="w-11 h-11">
 						<AvatarImage
 							src={post.author?.avatar || "/placeholder.svg"}
@@ -318,10 +399,11 @@ export const PostCard = ({ post }: { post: Post }) => {
 							</span>
 						</div>
 					</div>
-				</div>
+				</Link>
 				<Button
 					variant="ghost"
 					size="icon"
+					onClick={() => setShowDrawer(true)}
 					className="text-muted-foreground hover:text-foreground">
 					<MoreHorizontal className="w-5 h-5" />
 				</Button>
@@ -384,6 +466,118 @@ export const PostCard = ({ post }: { post: Post }) => {
 					<Bookmark className={`w-4 h-4 ${isBookmarked ? "fill-current" : ""}`} />
 				</Button>
 			</div>
+
+			<PostOptionsDrawer
+				isOpen={showDrawer}
+				onClose={() => setShowDrawer(false)}
+				isOwner={isOwner}
+				isFollowing={isFollowing}
+				onDelete={handleDelete}
+				onUnfollow={handleUnfollow}
+				onCopyLink={handleCopyLink}
+			/>
 		</article>
 	);
 };
+
+function PostOptionsDrawer({
+	isOpen,
+	onClose,
+	isOwner,
+	isFollowing,
+	onDelete,
+	onUnfollow,
+	onCopyLink,
+}: {
+	isOpen: boolean;
+	onClose: () => void;
+	isOwner: boolean;
+	isFollowing: boolean;
+	onDelete: () => void;
+	onUnfollow: () => void;
+	onCopyLink: () => void;
+}) {
+	const [mounted, setMounted] = useState(false);
+
+	useEffect(() => {
+		setMounted(true);
+	}, []);
+
+	useEffect(() => {
+		if (isOpen) {
+			document.body.style.overflow = "hidden";
+		} else {
+			document.body.style.overflow = "";
+		}
+		return () => {
+			document.body.style.overflow = "";
+		};
+	}, [isOpen]);
+
+	if (!mounted || !isOpen) return null;
+
+	return createPortal(
+		<div
+			className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm"
+			onClick={onClose}>
+			<div
+				className="w-full max-w-md bg-background border-t border-border rounded-t-2xl p-4 animate-in slide-in-from-bottom duration-300"
+				onClick={(e) => e.stopPropagation()}>
+				<div className="flex justify-center mb-6">
+					<div className="w-12 h-1.5 bg-muted rounded-full" />
+				</div>
+
+				<div className="flex flex-col gap-2">
+					{isOwner && (
+						<Button
+							variant="ghost"
+							className="w-full justify-start gap-3 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 font-mono"
+							onClick={onDelete}>
+							<Trash2 className="w-5 h-5" />
+							Delete Post
+						</Button>
+					)}
+
+					{isFollowing && (
+						<Button
+							variant="ghost"
+							className="w-full justify-start gap-3 font-mono"
+							onClick={onUnfollow}>
+							<UserMinus className="w-5 h-5" />
+							Unfollow Author
+						</Button>
+					)}
+
+					<Button
+						variant="ghost"
+						className="w-full justify-start gap-3 font-mono"
+						onClick={onCopyLink}>
+						<LinkIcon className="w-5 h-5" />
+						Copy Link
+					</Button>
+
+					<Button
+						variant="ghost"
+						className="w-full justify-start gap-3 font-mono"
+						onClick={() => {
+							// Report logic here
+							onClose();
+						}}>
+						<Flag className="w-5 h-5" />
+						Report Post
+					</Button>
+				</div>
+
+				<div className="mt-4 pt-4 border-t border-border">
+					<Button
+						variant="outline"
+						className="w-full font-mono rounded-xl"
+						onClick={onClose}>
+						Cancel
+					</Button>
+				</div>
+			</div>
+		</div>,
+		document.body
+	);
+}

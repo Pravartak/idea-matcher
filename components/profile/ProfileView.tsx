@@ -74,22 +74,30 @@ export default function ProfilePage({
 	const [isSharing, setIsSharing] = useState(false);
 	const [isLiked, setIsLiked] = useState(false);
 	const [isBookmarked, setIsBookmarked] = useState(false);
+	const [currentPosts, setCurrentPosts] = useState(posts);
+
+	useEffect(() => {
+		setCurrentPosts(posts);
+	}, [posts]);
 
 	useEffect(() => {
 		if (isOwner) return;
-		const checkFollowing = async () => {
-			const currentUser = auth.currentUser;
+		const checkFollowing = async (currentUser: any) => {
 			if (currentUser && user.uid) {
-				const followersRef = doc(db, "followers", user.uid);
-				const docSnap = await getDoc(followersRef);
-				if (docSnap.exists() && docSnap.data()[currentUser.uid]) {
-					setIsFollowing(true);
-				} else {
-					setIsFollowing(false);
+				try {
+					const followersRef = doc(db, "followers", user.uid);
+					const docSnap = await getDoc(followersRef);
+					if (docSnap.exists() && docSnap.data()[currentUser.uid]) {
+						setIsFollowing(true);
+					} else {
+						setIsFollowing(false);
+					}
+				} catch (error) {
+					console.error("Error checking following status:", error);
 				}
 			}
 		};
-		const unsubscribe = auth.onAuthStateChanged(checkFollowing);
+		const unsubscribe = auth.onAuthStateChanged((user) => checkFollowing(user));
 		return () => unsubscribe();
 	}, [user.uid, isOwner]);
 
@@ -117,10 +125,15 @@ export default function ProfilePage({
 
 	const handleConnect = async () => {
 		if (!user.uid) return;
-		await updateDoc(doc(db, "users", user.uid!), {
-			Connections: isConnected ? user.Connections! - 1 : user.Connections! + 1,
-		});
-		setIsConnected(!isConnected);
+		try {
+			await updateDoc(doc(db, "users", user.uid!), {
+				Connections: isConnected ? user.Connections! - 1 : user.Connections! + 1,
+			});
+			setIsConnected(!isConnected);
+		} catch (error) {
+			console.error("Error updating connection status:", error);
+			alert("Failed to update connection status. Missing permissions.");
+		}
 	};
 
 	const handleFollow = async () => {
@@ -131,19 +144,24 @@ export default function ProfilePage({
 		const userRef = doc(db, "users", user.uid);
 		const followersRef = doc(db, "followers", user.uid);
 
-		if (isFollowing) {
-			await updateDoc(userRef, { Followers: increment(-1) });
-			await updateDoc(followersRef, { [viewerUid]: deleteField() });
-			await updateDoc(doc(db, "users", viewerUid), {
-				Following: increment(-1),
-			});
-		} else {
-			await updateDoc(userRef, { Followers: increment(1) });
-			await setDoc(followersRef, { [viewerUid]: true }, { merge: true });
-			await updateDoc(doc(db, "users", viewerUid), { Following: increment(1) });
-		}
+		try {
+			if (isFollowing) {
+				await updateDoc(userRef, { Followers: increment(-1) });
+				await updateDoc(followersRef, { [viewerUid]: deleteField() });
+				await updateDoc(doc(db, "users", viewerUid), {
+					Following: increment(-1),
+				});
+			} else {
+				await updateDoc(userRef, { Followers: increment(1) });
+				await setDoc(followersRef, { [viewerUid]: true }, { merge: true });
+				await updateDoc(doc(db, "users", viewerUid), { Following: increment(1) });
+			}
 
-		setIsFollowing(!isFollowing);
+			setIsFollowing(!isFollowing);
+		} catch (error) {
+			console.error("Error updating follow status:", error);
+			alert("Failed to update follow status. Missing permissions.");
+		}
 	};
 
 	return (
@@ -436,15 +454,19 @@ export default function ProfilePage({
 				</div>
 
 				{/* User Posts Section */}
-				{posts.length > 0 ? (
+				{currentPosts.length > 0 ? (
 					<div className="space-y-4">
 						<h3 className="flex items-center gap-2 text-lg font-semibold">
 							<MessageSquare className="h-5 w-5" />
 							Posts
 						</h3>
 						<div className="grid gap-4">
-							{posts.map((post) => (
-								<PostCard key={post.id} post={post} />
+							{currentPosts.map((post) => (
+								<PostCard
+									key={post.id}
+									post={post}
+									onDelete={(id: string) => setCurrentPosts((prev) => prev.filter((p) => p.id !== id))}
+								/>
 							))}
 						</div>
 					</div>

@@ -19,13 +19,13 @@ import { db, storage } from "@/lib/firebase";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { collection, doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
-import { Post } from "@/components/postComponents/PostComponents";
 
 interface PostMedia {
 	type: "image" | "video" | "audio";
 	url: string;
 	alt?: string;
 	file?: File;
+	path?: string;
 }
 
 interface CreatePostFormData {
@@ -69,15 +69,6 @@ export default function CreatePostPage() {
 		});
 		return () => unsubscribe();
 	}, []);
-
-	// Mock user data - in a real app, this would come from auth context
-	const currentUser = {
-		uid: "user123",
-		name: "Your Name",
-		username: "yourname",
-		avatar: "/user-profile-avatar.png",
-		verified: true,
-	};
 
 	const postTypes = [
 		{ value: "teammates", label: "Looking for teammates" },
@@ -198,6 +189,7 @@ export default function CreatePostPage() {
 			return {
 				type: item.type,
 				url,
+				path: storageRef.fullPath,
 				alt: item.alt || file.name,
 			};
 		});

@@ -11,22 +11,10 @@ import {
 	Users,
 	UserPlus,
 	Bell,
-	Heart,
-	MessageCircle,
-	Share2,
-	Bookmark,
-	Play,
-	Pause,
-	Volume2,
-	VolumeX,
-	MoreHorizontal,
-	ChevronLeft,
-	ChevronRight,
 	Menu,
 	MessageSquare,
 	X,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { db } from "@/lib/firebase";
 import {
@@ -58,7 +46,7 @@ const secondaryNavItems = [
 	{ icon: Bell, label: "Notifications", href: "/notifications", badge: true },
 ];
 
-export default function FeedPage({ posts }: { posts: Post[] }) {
+export default function FeedPage() {
 	const router = useRouter();
 
 	const [sidebarExpanded, setSidebarExpanded] = useState(false);
@@ -299,7 +287,11 @@ export default function FeedPage({ posts }: { posts: Post[] }) {
 				{/* Feed */}
 				<div className="p-4 md:p-6 space-y-4 max-w-2xl mx-auto">
 					{postsData?.map((post) => (
-						<PostCard key={post.id} post={post} />
+						<PostCard
+							key={post.id}
+							post={post}
+							onDelete={(id) => setPostsData((prev) => (prev ? prev.filter((p) => p.id !== id) : null))}
+						/>
 					))}
 				</div>
 			</main>
