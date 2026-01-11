@@ -333,6 +333,7 @@ export const PostCard = ({ post, onDelete }: { post: Post; onDelete?: (id: strin
 			}
 
 			await deleteDoc(doc(db, "Posts", post.id));
+			await updateDoc(doc(db, "users", post.authorUid), { Posts: increment(-1) });
 			if (onDelete) onDelete(post.id);
 			setShowDrawer(false);
 		} catch (error) {
