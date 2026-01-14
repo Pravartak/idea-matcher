@@ -19,7 +19,15 @@ import {
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { auth, db, storage } from "@/lib/firebase";
-import { updateDoc, doc, setDoc, increment, getDoc, deleteDoc, deleteField } from "firebase/firestore";
+import {
+	updateDoc,
+	doc,
+	setDoc,
+	increment,
+	getDoc,
+	deleteDoc,
+	deleteField,
+} from "firebase/firestore";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -206,11 +214,7 @@ export function MediaItem({ media }: { media: PostMedia }) {
 	if (media.type === "audio") {
 		return (
 			<div className="flex items-center gap-4 p-4 bg-secondary rounded-lg">
-				<audio
-					ref={mediaRef as any}
-					src={media.url}
-					muted={isMuted}
-				/>
+				<audio ref={mediaRef as any} src={media.url} muted={isMuted} />
 				<button
 					onClick={togglePlay}
 					className="p-3 bg-primary rounded-full hover:bg-primary/80 transition-colors">
@@ -250,7 +254,13 @@ export function MediaItem({ media }: { media: PostMedia }) {
 	return null;
 }
 
-export const PostCard = ({ post, onDelete }: { post: Post; onDelete?: (id: string) => void }) => {
+export const PostCard = ({
+	post,
+	onDelete,
+}: {
+	post: Post;
+	onDelete?: (id: string) => void;
+}) => {
 	const [isLiked, setIsLiked] = useState(false);
 	const [isBookmarked, setIsBookmarked] = useState(false);
 	const [isFollowing, setIsFollowing] = useState(false);
@@ -262,7 +272,8 @@ export const PostCard = ({ post, onDelete }: { post: Post; onDelete?: (id: strin
 	useEffect(() => {
 		// Disable zoom for all pages
 		const meta = document.querySelector("meta[name='viewport']");
-		const content = "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0";
+		const content =
+			"width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0";
 		if (meta) {
 			meta.setAttribute("content", content);
 		} else {
@@ -329,11 +340,13 @@ export const PostCard = ({ post, onDelete }: { post: Post; onDelete?: (id: strin
 						const mediaRef = ref(storage, m.path);
 						return deleteObject(mediaRef);
 					})
-				)
+				);
 			}
 
 			await deleteDoc(doc(db, "Posts", post.id));
-			await updateDoc(doc(db, "users", post.authorUid), { Posts: increment(-1) });
+			await updateDoc(doc(db, "users", post.authorUid), {
+				Posts: increment(-1),
+			});
 			if (onDelete) onDelete(post.id);
 			setShowDrawer(false);
 		} catch (error) {
@@ -366,10 +379,12 @@ export const PostCard = ({ post, onDelete }: { post: Post; onDelete?: (id: strin
 	};
 
 	return (
-		<article className="bg-card border border-border rounded-xl p-5 min-w-0 overflow-hidden">
+		<article className="bg-card border border-border rounded-xl p-4 md:p-5 min-w-0 overflow-hidden">
 			{/* Post Header */}
 			<div className="flex items-start justify-between mb-4">
-				<Link href={`/u/${post.authorUid}`} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+				<Link
+					href={`/u/${post.authorUid}`}
+					className="flex items-center gap-3 hover:opacity-80 transition-opacity">
 					<Avatar className="w-11 h-11">
 						<AvatarImage
 							src={post.author?.avatar || "/placeholder.svg"}
@@ -440,7 +455,11 @@ export const PostCard = ({ post, onDelete }: { post: Post; onDelete?: (id: strin
 						variant="ghost"
 						size="sm"
 						onClick={handleLike}
-						className={`gap-2 font-mono text-xs ${isLiked ? "text-red-500 hover:text-red-600" : "text-muted-foreground hover:text-foreground"}`}>
+						className={`gap-2 font-mono text-xs ${
+							isLiked
+								? "text-red-500 hover:text-red-600"
+								: "text-muted-foreground hover:text-foreground"
+						}`}>
 						<Heart className={`w-4 h-4 ${isLiked ? "fill-current" : ""}`} />
 						{likesCount}
 					</Button>
@@ -463,8 +482,14 @@ export const PostCard = ({ post, onDelete }: { post: Post; onDelete?: (id: strin
 					variant="ghost"
 					size="sm"
 					onClick={handleBookmark}
-					className={`${isBookmarked ? "text-primary hover:text-primary/90" : "text-muted-foreground hover:text-foreground"}`}>
-					<Bookmark className={`w-4 h-4 ${isBookmarked ? "fill-current" : ""}`} />
+					className={`${
+						isBookmarked
+							? "text-primary hover:text-primary/90"
+							: "text-muted-foreground hover:text-foreground"
+					}`}>
+					<Bookmark
+						className={`w-4 h-4 ${isBookmarked ? "fill-current" : ""}`}
+					/>
 				</Button>
 			</div>
 

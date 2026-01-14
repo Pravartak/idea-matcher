@@ -102,7 +102,10 @@ export default function FeedPage() {
 					).length;
 
 					if (aScore === bScore) {
-						return ((b.createdAt as any)?.seconds || 0) - ((a.createdAt as any)?.seconds || 0);
+						return (
+							((b.createdAt as any)?.seconds || 0) -
+							((a.createdAt as any)?.seconds || 0)
+						);
 					}
 					return bScore - aScore;
 				});
@@ -268,7 +271,7 @@ export default function FeedPage() {
 			</aside>
 
 			<main
-				className={`flex-1 transition-all duration-300 ${
+				className={`flex-1 min-w-0 transition-all duration-300 ${
 					sidebarExpanded ? "md:ml-64" : "md:ml-16"
 				} ml-0`}>
 				{/* Top Header */}
@@ -290,7 +293,11 @@ export default function FeedPage() {
 						<PostCard
 							key={post.id}
 							post={post}
-							onDelete={(id) => setPostsData((prev) => (prev ? prev.filter((p) => p.id !== id) : null))}
+							onDelete={(id) =>
+								setPostsData((prev) =>
+									prev ? prev.filter((p) => p.id !== id) : null
+								)
+							}
 						/>
 					))}
 				</div>

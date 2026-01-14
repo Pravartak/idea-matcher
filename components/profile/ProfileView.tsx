@@ -127,7 +127,9 @@ export default function ProfilePage({
 		if (!user.uid) return;
 		try {
 			await updateDoc(doc(db, "users", user.uid!), {
-				Connections: isConnected ? user.Connections! - 1 : user.Connections! + 1,
+				Connections: isConnected
+					? user.Connections! - 1
+					: user.Connections! + 1,
 			});
 			setIsConnected(!isConnected);
 		} catch (error) {
@@ -155,7 +157,9 @@ export default function ProfilePage({
 			} else {
 				await updateDoc(targetUid, { Followers: increment(1) });
 				await setDoc(followersRef, { [viewerUid]: true }, { merge: true });
-				await updateDoc(doc(db, "users", viewerUid), { Following: increment(1) });
+				await updateDoc(doc(db, "users", viewerUid), {
+					Following: increment(1),
+				});
 			}
 
 			setIsFollowing(!isFollowing);
@@ -466,7 +470,9 @@ export default function ProfilePage({
 								<PostCard
 									key={post.id}
 									post={post}
-									onDelete={(id: string) => setCurrentPosts((prev) => prev.filter((p) => p.id !== id))}
+									onDelete={(id: string) =>
+										setCurrentPosts((prev) => prev.filter((p) => p.id !== id))
+									}
 								/>
 							))}
 						</div>
