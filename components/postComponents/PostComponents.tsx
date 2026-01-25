@@ -16,6 +16,7 @@ import {
 	UserMinus,
 	Flag,
 	Link as LinkIcon,
+	Pencil,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { auth, db, storage } from "@/lib/firebase";
@@ -98,6 +99,7 @@ interface Reply {
 
 interface Comment {
 	id: string;
+	authorUid: string;
 	author: {
 		name: string;
 		username: string;
@@ -573,6 +575,7 @@ export const PostCard = ({
 			<PostOptionsDrawer
 				isOpen={showDrawer}
 				onClose={() => setShowDrawer(false)}
+				postAuthorUid={post.authorUid}
 				isOwner={isOwner}
 				isFollowing={isFollowing}
 				onDelete={handleDelete}
@@ -582,6 +585,7 @@ export const PostCard = ({
 			<CommentsSection
 				postId={post.id}
 				isOpen={commentsOpen}
+				postAuthorUid={post.authorUid}
 				onClose={() => setCommentsOpen(false)}
 			/>
 		</article>
@@ -592,16 +596,20 @@ function CommentsSection({
 	postId,
 	isOpen,
 	onClose,
+	postAuthorUid,
 }: {
 	postId: string;
 	isOpen: boolean;
 	onClose: () => void;
+	postAuthorUid: string;
 }) {
 	const [drawerHeight, setDrawerHeight] = useState(60);
 	const [isDragging, setIsDragging] = useState(false);
 	const [newComment, setNewComment] = useState("");
 	const [comments, setComments] = useState<Comment[]>([]);
 	const [selectedBadge, setSelectedBadge] = useState("general");
+	const [commentWithOptions, setCommentWithOptions] = useState<Comment | null>(null);
+	const viewerUid = auth.currentUser?.uid;
 
 	const drawerHeightRef = useRef(drawerHeight);
 
@@ -752,6 +760,15 @@ function CommentsSection({
 		});
 	};
 
+	const deleteComment = async (commentId: string) => {
+		const commentRef = doc(db, "Posts", postId, "comments", commentId);
+		await deleteDoc(commentRef);
+		setComments((prev) => prev.filter((comment) => comment.id !== commentId));
+		updateDoc(doc(db, "Posts", postId), {
+			commentsCount: increment(-1),
+		});
+	};
+
 	if (!isOpen) return null;
 
 	return createPortal(
@@ -801,7 +818,10 @@ function CommentsSection({
 
 					{/* Comment */}
 					{comments.map((comment) => (
-						<div key={comment.id} className="bg-background border border-border rounded-xl p-4 space-y-3">
+						<div
+							key={comment.id}
+							id={`comment-${comment.id}`}
+							className="bg-background border border-border rounded-xl p-4 space-y-3">
 							{/* Comment Header */}
 							<div className="flex items-start justify-between">
 								<div className="flex items-start gap-3 flex-1">
@@ -833,6 +853,13 @@ function CommentsSection({
 										</p>
 									</div>
 								</div>
+								<Button
+									variant="ghost"
+									size="icon"
+									onClick={() => setCommentWithOptions(comment)}
+									className="text-muted-foreground hover:text-foreground -mr-2 h-8 w-8">
+									<MoreHorizontal className="w-5 h-5" />
+								</Button>
 							</div>
 
 							{/* Comment Content with Markdown Support */}
@@ -910,6 +937,32 @@ function CommentsSection({
 					))}
 				</div>
 
+				{commentWithOptions && (
+					<CommentOptionsDrawer
+						isOpen={!!commentWithOptions}
+						onClose={() => setCommentWithOptions(null)}
+						isCommentOwner={viewerUid === commentWithOptions.authorUid}
+						isPostOwner={viewerUid === postAuthorUid}
+						onDelete={() => {
+							deleteComment(commentWithOptions.id);
+							setCommentWithOptions(null);
+						}}
+						onEdit={() => {
+							// TODO: implement edit
+							setCommentWithOptions(null);
+						}}
+						onReport={() => {
+							// TODO: implement report
+							setCommentWithOptions(null);
+						}}
+						onCopyLink={() => {
+							navigator.clipboard.writeText(
+								`${window.location.origin}/post/${postId}#comment-${commentWithOptions.id}`,
+							);
+							setCommentWithOptions(null);
+						}}
+					/>
+				)}
 				{/* Comment Input */}
 				<div className="border-t border-border px-6 py-4 space-y-3">
 					<div className="flex gap-2">
@@ -952,6 +1005,109 @@ function CommentsSection({
 	);
 }
 
+function CommentOptionsDrawer({
+	isOpen,
+	onClose,
+	isCommentOwner,
+	isPostOwner,
+	onDelete,
+	onEdit,
+	onReport,
+	onCopyLink,
+}: {
+	isOpen: boolean;
+	onClose: () => void;
+	isCommentOwner: boolean;
+	isPostOwner: boolean;
+	onDelete: () => void;
+	onEdit: () => void;
+	onReport: () => void;
+	onCopyLink: () => void;
+}) {
+	const [mounted, setMounted] = useState(false);
+
+	useEffect(() => {
+		setMounted(true);
+	}, []);
+
+	useEffect(() => {
+		if (isOpen) {
+			document.body.style.overflow = "hidden";
+		} else {
+			document.body.style.overflow = "";
+		}
+		return () => {
+			document.body.style.overflow = "";
+		};
+	}, [isOpen]);
+
+	if (!mounted || !isOpen) return null;
+
+	return createPortal(
+		<div
+			className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm"
+			onClick={onClose}>
+			<div
+				className="w-full max-w-md bg-background border-t border-border rounded-t-2xl p-4 animate-in slide-in-from-bottom duration-300"
+				onClick={(e) => e.stopPropagation()}>
+				<div className="flex justify-center mb-6">
+					<div className="w-12 h-1.5 bg-muted rounded-full" />
+				</div>
+
+				<div className="flex flex-col gap-2">
+					{(isCommentOwner || isPostOwner) && (
+						<Button
+							variant="ghost"
+							className="w-full justify-start gap-3 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 font-mono"
+							onClick={onDelete}>
+							<Trash2 className="w-5 h-5" />
+							Delete Comment
+						</Button>
+					)}
+
+					{isCommentOwner && (
+						<Button
+							variant="ghost"
+							className="w-full justify-start gap-3 font-mono"
+							onClick={onEdit}>
+							<Pencil className="w-5 h-5" />
+							Edit Comment
+						</Button>
+					)}
+
+					<Button
+						variant="ghost"
+						className="w-full justify-start gap-3 font-mono"
+						onClick={onCopyLink}>
+						<LinkIcon className="w-5 h-5" />
+						Copy Link
+					</Button>
+
+					{!isCommentOwner && (
+						<Button
+							variant="ghost"
+							className="w-full justify-start gap-3 font-mono"
+							onClick={onReport}>
+							<Flag className="w-5 h-5" />
+							Report Comment
+						</Button>
+					)}
+				</div>
+
+				<div className="mt-4 pt-4 border-t border-border">
+					<Button
+						variant="outline"
+						className="w-full font-mono rounded-xl"
+						onClick={onClose}>
+						Cancel
+					</Button>
+				</div>
+			</div>
+		</div>,
+		document.body,
+	);
+}
+
 function PostOptionsDrawer({
 	isOpen,
 	onClose,
@@ -963,6 +1119,7 @@ function PostOptionsDrawer({
 }: {
 	isOpen: boolean;
 	onClose: () => void;
+	postAuthorUid: string;
 	isOwner: boolean;
 	isFollowing: boolean;
 	onDelete: () => void;
