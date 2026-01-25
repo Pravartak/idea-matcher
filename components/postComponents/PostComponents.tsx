@@ -38,6 +38,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { createPortal } from "react-dom";
 import { deleteObject, ref } from "firebase/storage";
+import { get } from "http";
 
 export interface PostMedia {
 	type: "image" | "video" | "audio";
@@ -721,13 +722,17 @@ function CommentsSection({
 
 		if (!viewer) return;
 
+		const commenter = doc(db, "users", viewer?.uid!);
+		const commenterSnap = await getDoc(commenter);
+		const commenterData = commenterSnap.data();
+
 		const newCommentData = {
-			authorUid: viewer.uid,
+			authorUid: commenterData?.uid || "ideamatcheruser",
 			author: {
-				name: viewer?.displayName || "Anonymous",
-				username: viewer?.email?.split("@")[0] || "anonymous",
-				avatar: viewer?.photoURL || "",
-				verified: false,
+				name: commenterData?.Name || "IdeaMatcher User",
+				username: commenterData?.username || "ideamatcheruser",
+				avatar: commenterData?.Avatar || "/placeholder.svg",
+				verified: commenterData?.verified || false,
 			},
 			content: newComment,
 			badge: commentBadgeTypes[selectedBadge],
