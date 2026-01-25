@@ -630,7 +630,7 @@ function CommentsSection({
 		};
 	}, [isDragging]);
 
-	const handleDrawerMouseDown = () => {
+	const handleDrawerStart = () => {
 		setIsDragging(true);
 	};
 
@@ -646,7 +646,16 @@ function CommentsSection({
 			}
 		};
 
-		const handleMouseUp = () => {
+		const handleTouchMove = (e: TouchEvent) => {
+			const viewportHeight = window.innerHeight;
+			const newHeight = ((viewportHeight - e.touches[0].clientY) / viewportHeight) * 100;
+
+			if (newHeight > 30 && newHeight < 95) {
+				setDrawerHeight(newHeight);
+			}
+		};
+
+		const handleDragEnd = () => {
 			setIsDragging(false);
 			if (drawerHeightRef.current < 62) {
 				setDrawerHeight(50);
@@ -656,11 +665,15 @@ function CommentsSection({
 		};
 
 		window.addEventListener("mousemove", handleMouseMove);
-		window.addEventListener("mouseup", handleMouseUp);
+		window.addEventListener("mouseup", handleDragEnd);
+		window.addEventListener("touchmove", handleTouchMove);
+		window.addEventListener("touchend", handleDragEnd);
 
 		return () => {
 			window.removeEventListener("mousemove", handleMouseMove);
-			window.removeEventListener("mouseup", handleMouseUp);
+			window.removeEventListener("mouseup", handleDragEnd);
+			window.removeEventListener("touchmove", handleTouchMove);
+			window.removeEventListener("touchend", handleDragEnd);
 		};
 	}, [isDragging]);
 
@@ -754,8 +767,9 @@ function CommentsSection({
 				}`}>
 				{/* Draggable Handle */}
 				<div
-					onMouseDown={handleDrawerMouseDown}
-					className="h-1 bg-muted rounded-full mx-auto my-3 w-12 cursor-grab active:cursor-grabbing"
+					onMouseDown={handleDrawerStart}
+					onTouchStart={handleDrawerStart}
+					className="h-1 bg-muted rounded-full mx-auto my-3 w-12 cursor-grab active:cursor-grabbing touch-none"
 				/>
 
 				{/* Header */}
