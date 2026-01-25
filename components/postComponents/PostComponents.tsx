@@ -344,6 +344,7 @@ export const PostCard = ({
 	const [showDrawer, setShowDrawer] = useState(false);
 	const [commentsOpen, setCommentsOpen] = useState(false);
 	const [likesCount, setLikesCount] = useState(post.likesCount);
+	const [commentsCount, setCommentsCount] = useState(post.commentsCount);
 	const viewerUid = auth.currentUser?.uid;
 	const isOwner = viewerUid === post.authorUid;
 
@@ -547,7 +548,7 @@ export const PostCard = ({
 						onClick={() => setCommentsOpen(true)}
 						className="gap-2 font-mono text-xs text-muted-foreground hover:text-foreground">
 						<MessageCircle className="w-4 h-4" />
-						{post.commentsCount}
+						{commentsCount}
 					</Button>
 					<Button
 						variant="ghost"
@@ -587,6 +588,8 @@ export const PostCard = ({
 				isOpen={commentsOpen}
 				postAuthorUid={post.authorUid}
 				onClose={() => setCommentsOpen(false)}
+				onCommentAdded={() => setCommentsCount((prev) => prev + 1)}
+				onCommentDeleted={() => setCommentsCount((prev) => prev - 1)}
 			/>
 		</article>
 	);
@@ -597,11 +600,15 @@ function CommentsSection({
 	isOpen,
 	onClose,
 	postAuthorUid,
+	onCommentAdded,
+	onCommentDeleted,
 }: {
 	postId: string;
 	isOpen: boolean;
 	onClose: () => void;
 	postAuthorUid: string;
+	onCommentAdded?: () => void;
+	onCommentDeleted?: () => void;
 }) {
 	const [drawerHeight, setDrawerHeight] = useState(60);
 	const [isDragging, setIsDragging] = useState(false);
@@ -734,6 +741,8 @@ function CommentsSection({
 		const commenterSnap = await getDoc(commenter);
 		const commenterData = commenterSnap.data();
 
+		const newCommentRef = doc(commentsRef);
+
 		const newCommentData = {
 			authorUid: commenterData?.uid || "ideamatcheruser",
 			author: {
@@ -751,22 +760,43 @@ function CommentsSection({
 		};
 
 		// Optimistic update
-		setComments((prev) => [{ ...newCommentData, id: Date.now().toString() } as unknown as Comment, ...prev]);
+		setComments((prev) => [{ ...newCommentData, id: newCommentRef.id } as unknown as Comment, ...prev]);
 		setNewComment("");
 
-		await addDoc(commentsRef, newCommentData);
-		await updateDoc(postRef, {
-			commentsCount: increment(1),
-		});
+		try {
+			await setDoc(newCommentRef, newCommentData);
+			try {
+				await updateDoc(postRef, {
+					commentsCount: increment(1),
+				});
+				onCommentAdded?.();
+			} catch (error) {
+				console.error("Error updating comment count:", error);
+				onCommentAdded?.();
+			}
+		} catch (error) {
+			console.error("Error adding comment:", error);
+			setComments((prev) => prev.filter((c) => c.id !== newCommentRef.id));
+		}
 	};
 
 	const deleteComment = async (commentId: string) => {
-		const commentRef = doc(db, "Posts", postId, "comments", commentId);
-		await deleteDoc(commentRef);
-		setComments((prev) => prev.filter((comment) => comment.id !== commentId));
-		updateDoc(doc(db, "Posts", postId), {
-			commentsCount: increment(-1),
-		});
+		try {
+			const commentRef = doc(db, "Posts", postId, "comments", commentId);
+			await deleteDoc(commentRef);
+			setComments((prev) => prev.filter((comment) => comment.id !== commentId));
+			try {
+				await updateDoc(doc(db, "Posts", postId), {
+					commentsCount: increment(-1),
+				});
+				onCommentDeleted?.();
+			} catch (error) {
+				console.error("Error updating comment count:", error);
+				onCommentDeleted?.();
+			}
+		} catch (error) {
+			console.error("Error deleting comment:", error);
+		}
 	};
 
 	if (!isOpen) return null;
@@ -849,7 +879,11 @@ function CommentsSection({
 										</div>
 										<p className="text-xs text-muted-foreground">
 											@{comment.author?.username?.replace("@", "") || "anonymous"} ·{" "}
-											{comment.createdAt instanceof Date ? comment.createdAt.toLocaleDateString() : "Just now"}
+											{comment.createdAt?.seconds
+												? new Date(comment.createdAt.seconds * 1000).toLocaleString()
+												: comment.createdAt instanceof Date
+												? comment.createdAt.toLocaleString()
+												: "Just now"}
 										</p>
 									</div>
 								</div>
