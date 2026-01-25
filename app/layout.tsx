@@ -18,6 +18,9 @@ export const metadata: Metadata = {
   title: "Idea Matcher",
   description: "Find developers who share your vision.",
   generator: "v0.app",
+  other: {
+    "google-adsense-account": "ca-pub-6553407246371441",
+  },
 }
 
 export default function RootLayout({

@@ -25,8 +25,13 @@ import {
 	setDoc,
 	increment,
 	getDoc,
+	addDoc,
+	getDocs,
 	deleteDoc,
 	deleteField,
+	query,
+	orderBy,
+	collection,
 } from "firebase/firestore";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -70,6 +75,75 @@ export interface Post {
 	createdAt: Date | number; // Date.now() timestamp
 }
 
+interface CommentBadgeType {
+	type: "general" | "suggestion" | "question" | "insight" | "collaboration";
+	label: string;
+	icon: string;
+	color: string;
+}
+
+interface Reply {
+	id: string;
+	author: {
+		name: string;
+		username: string;
+		avatar: string;
+		verified: boolean;
+	};
+	content: string;
+	timestamp: string;
+	likes: number;
+}
+
+interface Comment {
+	id: string;
+	author: {
+		name: string;
+		username: string;
+		avatar: string;
+		verified: boolean;
+	};
+	content: string;
+	badge: CommentBadgeType;
+	timestamp: string;
+	likes: number;
+	replies?: Reply[];
+	createdAt?: any;
+}
+
+const commentBadgeTypes: Record<string, CommentBadgeType> = {
+	general: {
+		type: "general",
+		label: "General",
+		icon: "💬",
+		color: "bg-blue-900/40 text-blue-300 border-blue-700/50",
+	},
+	suggestion: {
+		type: "suggestion",
+		label: "Suggestion",
+		icon: "💡",
+		color: "bg-yellow-900/40 text-yellow-300 border-yellow-700/50",
+	},
+	question: {
+		type: "question",
+		label: "Question",
+		icon: "❓",
+		color: "bg-purple-900/40 text-purple-300 border-purple-700/50",
+	},
+	insight: {
+		type: "insight",
+		label: "Insight",
+		icon: "✨",
+		color: "bg-green-900/40 text-green-300 border-green-700/50",
+	},
+	collaboration: {
+		type: "collaboration",
+		label: "Collaboration",
+		icon: "🤝",
+		color: "bg-pink-900/40 text-pink-300 border-pink-700/50",
+	},
+};
+
 export function MediaCarousel({ media }: { media: PostMedia[] }) {
 	const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -85,7 +159,7 @@ export function MediaCarousel({ media }: { media: PostMedia[] }) {
 					<button
 						onClick={() =>
 							setCurrentIndex((prev) =>
-								prev > 0 ? prev - 1 : media.length - 1
+								prev > 0 ? prev - 1 : media.length - 1,
 							)
 						}
 						className="absolute left-2 top-1/2 -translate-y-1/2 p-1 bg-background/80 rounded-full hover:bg-background transition-colors">
@@ -94,7 +168,7 @@ export function MediaCarousel({ media }: { media: PostMedia[] }) {
 					<button
 						onClick={() =>
 							setCurrentIndex((prev) =>
-								prev < media.length - 1 ? prev + 1 : 0
+								prev < media.length - 1 ? prev + 1 : 0,
 							)
 						}
 						className="absolute right-2 top-1/2 -translate-y-1/2 p-1 bg-background/80 rounded-full hover:bg-background transition-colors">
@@ -265,6 +339,7 @@ export const PostCard = ({
 	const [isBookmarked, setIsBookmarked] = useState(false);
 	const [isFollowing, setIsFollowing] = useState(false);
 	const [showDrawer, setShowDrawer] = useState(false);
+	const [commentsOpen, setCommentsOpen] = useState(false);
 	const [likesCount, setLikesCount] = useState(post.likesCount);
 	const viewerUid = auth.currentUser?.uid;
 	const isOwner = viewerUid === post.authorUid;
@@ -339,7 +414,7 @@ export const PostCard = ({
 						if (!m.path) return Promise.resolve();
 						const mediaRef = ref(storage, m.path);
 						return deleteObject(mediaRef);
-					})
+					}),
 				);
 			}
 
@@ -466,6 +541,7 @@ export const PostCard = ({
 					<Button
 						variant="ghost"
 						size="sm"
+						onClick={() => setCommentsOpen(true)}
 						className="gap-2 font-mono text-xs text-muted-foreground hover:text-foreground">
 						<MessageCircle className="w-4 h-4" />
 						{post.commentsCount}
@@ -502,9 +578,360 @@ export const PostCard = ({
 				onUnfollow={handleUnfollow}
 				onCopyLink={handleCopyLink}
 			/>
+			<CommentsSection
+				postId={post.id}
+				isOpen={commentsOpen}
+				onClose={() => setCommentsOpen(false)}
+			/>
 		</article>
 	);
 };
+
+function CommentsSection({
+	postId,
+	isOpen,
+	onClose,
+}: {
+	postId: string;
+	isOpen: boolean;
+	onClose: () => void;
+}) {
+	const [drawerHeight, setDrawerHeight] = useState(60);
+	const [isDragging, setIsDragging] = useState(false);
+	const [newComment, setNewComment] = useState("");
+	const [comments, setComments] = useState<Comment[]>([]);
+	const [selectedBadge, setSelectedBadge] = useState("general");
+
+	const drawerHeightRef = useRef(drawerHeight);
+
+	useEffect(() => {
+		drawerHeightRef.current = drawerHeight;
+	}, [drawerHeight]);
+
+	useEffect(() => {
+		if (isOpen) {
+			document.body.style.overflow = "hidden";
+		} else {
+			document.body.style.overflow = "";
+		}
+		return () => {
+			document.body.style.overflow = "";
+		};
+	}, [isOpen]);
+
+	useEffect(() => {
+		if (isDragging) {
+			document.body.style.userSelect = "none";
+		} else {
+			document.body.style.userSelect = "";
+		}
+		return () => {
+			document.body.style.userSelect = "";
+		};
+	}, [isDragging]);
+
+	const handleDrawerMouseDown = () => {
+		setIsDragging(true);
+	};
+
+	useEffect(() => {
+		if (!isDragging) return;
+
+		const handleMouseMove = (e: MouseEvent) => {
+			const viewportHeight = window.innerHeight;
+			const newHeight = ((viewportHeight - e.clientY) / viewportHeight) * 100;
+
+			if (newHeight > 30 && newHeight < 95) {
+				setDrawerHeight(newHeight);
+			}
+		};
+
+		const handleMouseUp = () => {
+			setIsDragging(false);
+			if (drawerHeightRef.current < 62) {
+				setDrawerHeight(50);
+			} else {
+				setDrawerHeight(90);
+			}
+		};
+
+		window.addEventListener("mousemove", handleMouseMove);
+		window.addEventListener("mouseup", handleMouseUp);
+
+		return () => {
+			window.removeEventListener("mousemove", handleMouseMove);
+			window.removeEventListener("mouseup", handleMouseUp);
+		};
+	}, [isDragging]);
+
+	const closeComments = () => {
+		onClose();
+		setNewComment("");
+		setSelectedBadge("general");
+	};
+
+	useEffect(() => {
+		if (!isOpen) return;
+		const getComments = async () => {
+			try {
+				if (!postId) return;
+				const q = query(
+					collection(db, "Posts", postId, "comments"),
+				);
+				const querySnapshot = await getDocs(q);
+				const fetchedComments = querySnapshot.docs.map((doc) => ({
+					id: doc.id,
+					...doc.data(),
+				})) as Comment[];
+
+				// Sort client-side to avoid index issues on empty collections
+				fetchedComments.sort((a, b) => {
+					const timeA = a.createdAt?.seconds ? a.createdAt.seconds : (a.createdAt ? new Date(a.createdAt).getTime() / 1000 : 0);
+					const timeB = b.createdAt?.seconds ? b.createdAt.seconds : (b.createdAt ? new Date(b.createdAt).getTime() / 1000 : 0);
+					return timeB - timeA;
+				});
+
+				setComments(fetchedComments);
+			} catch (error) {
+				console.error("Error fetching comments:", error);
+			}
+		};
+		getComments();
+	}, [postId, isOpen]);
+
+	const addComment = async () => {
+		if (!newComment.trim()) return;
+
+		const postRef = doc(db, "Posts", postId);
+		const commentsRef = collection(db, "Posts", postId, "comments");
+		const viewer = auth.currentUser;
+
+		if (!viewer) return;
+
+		const newCommentData = {
+			authorUid: viewer.uid,
+			author: {
+				name: viewer?.displayName || "Anonymous",
+				username: viewer?.email?.split("@")[0] || "anonymous",
+				avatar: viewer?.photoURL || "",
+				verified: false,
+			},
+			content: newComment,
+			badge: commentBadgeTypes[selectedBadge],
+			timestamp: new Date().getTime().toString(),
+			createdAt: new Date(),
+			likes: 0,
+			replies: [],
+		};
+
+		// Optimistic update
+		setComments((prev) => [{ ...newCommentData, id: Date.now().toString() } as unknown as Comment, ...prev]);
+		setNewComment("");
+
+		await addDoc(commentsRef, newCommentData);
+		await updateDoc(postRef, {
+			commentsCount: increment(1),
+		});
+	};
+
+	if (!isOpen) return null;
+
+	return createPortal(
+		<>
+			<div
+				className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
+				onClick={closeComments}
+			/>
+			<div
+				style={{
+					height: `${drawerHeight}vh`,
+					maxWidth: "min(100%, 45rem)",
+					left: "50%",
+					transform: "translateX(-50%)",
+				}}
+				className={`fixed bottom-0 z-50 bg-card border-t border-border rounded-t-2xl shadow-2xl flex flex-col ${
+					!isDragging ? "transition-all duration-300" : ""
+				}`}>
+				{/* Draggable Handle */}
+				<div
+					onMouseDown={handleDrawerMouseDown}
+					className="h-1 bg-muted rounded-full mx-auto my-3 w-12 cursor-grab active:cursor-grabbing"
+				/>
+
+				{/* Header */}
+				<div className="flex items-center justify-between px-6 pb-4 border-b border-border">
+					<h2 className="text-xl font-semibold">Comments</h2>
+					<button
+						onClick={closeComments}
+						className="p-1 hover:bg-muted rounded-lg transition">
+						<LinkIcon className="w-5 h-5" />
+					</button>
+				</div>
+
+				{/* Comments Container */}
+				<div className="flex-1 overflow-y-auto px-6 py-4 space-y-4 scrollbar-hide">
+					<style>{`
+                .scrollbar-hide::-webkit-scrollbar {
+                  display: none;
+                }
+                .scrollbar-hide {
+                  -ms-overflow-style: none;
+                  scrollbar-width: none;
+                }
+              `}</style>
+
+					{/* Comment */}
+					{comments.map((comment) => (
+						<div key={comment.id} className="bg-background border border-border rounded-xl p-4 space-y-3">
+							{/* Comment Header */}
+							<div className="flex items-start justify-between">
+								<div className="flex items-start gap-3 flex-1">
+									<Avatar className="w-8 h-8">
+										<AvatarImage
+											src={comment.author?.avatar || "/placeholder.svg"}
+										/>
+										<AvatarFallback>
+											{comment.author?.name?.charAt(0) || "?"}
+										</AvatarFallback>
+									</Avatar>
+
+									<div className="flex-1 min-w-0">
+										<div className="flex items-center gap-2 flex-wrap">
+											<span className="font-semibold text-sm">
+												{comment.author?.name || "Anonymous"}
+											</span>
+											{comment.author?.verified && (
+												<LinkIcon className="w-4 h-4 text-blue-400" />
+											)}
+											<span
+												className={`text-xs px-2.5 py-0.5 rounded-full border ${comment.badge.color}`}>
+												{comment.badge.icon} {comment.badge.label}
+											</span>
+										</div>
+										<p className="text-xs text-muted-foreground">
+											@{comment.author?.username?.replace("@", "") || "anonymous"} ·{" "}
+											{comment.createdAt instanceof Date ? comment.createdAt.toLocaleDateString() : "Just now"}
+										</p>
+									</div>
+								</div>
+							</div>
+
+							{/* Comment Content with Markdown Support */}
+							<div className="text-sm leading-relaxed space-y-2">
+								{comment.content
+									.split("\n\n")
+									.map((paragraph: string, i: number) => {
+										if (paragraph.startsWith("```")) {
+											const lang = paragraph.split("\n")[0].replace("```", "");
+											const code = paragraph
+												.split("\n")
+												.slice(1, -1)
+												.join("\n");
+											return (
+												<div
+													key={i}
+													className="bg-muted rounded-lg p-3 border border-border overflow-x-auto">
+													<code className="text-xs font-mono text-foreground whitespace-pre">
+														{code}
+													</code>
+												</div>
+											);
+										}
+										return <p key={i} className="whitespace-pre-wrap">{paragraph}</p>;
+									})}
+							</div>
+
+							{/* Engagement */}
+							<div className="flex items-center gap-4 pt-2 text-xs text-muted-foreground">
+								<button className="flex items-center gap-1 hover:text-foreground transition">
+									<Heart className="w-4 h-4" />
+									{comment.likes}
+								</button>
+								<button className="flex items-center gap-1 hover:text-foreground transition">
+									<LinkIcon className="w-4 h-4" />
+									Reply
+								</button>
+							</div>
+
+							{/* Replies */}
+							{comment.replies && comment.replies.length > 0 && (
+								<div className="mt-3 pt-3 border-t border-border space-y-3">
+									{comment.replies.map((reply: any) => (
+										<div
+											key={reply.id}
+											className="bg-muted/30 rounded-lg p-3 space-y-2">
+											<div className="flex items-center gap-2 flex-wrap">
+												<Avatar className="w-6 h-6">
+													<AvatarImage
+														src={reply.author.avatar || "/placeholder.svg"}
+													/>
+													<AvatarFallback>
+														{reply.author.name.charAt(0)}
+													</AvatarFallback>
+												</Avatar>
+												<span className="text-xs font-semibold">
+													{reply.author.name}
+												</span>
+												{reply.author.verified && (
+													<LinkIcon className="w-3 h-3 text-blue-400" />
+												)}
+												<span className="text-xs text-primary">
+													@{comment.author.username.replace("@", "")}
+												</span>
+											</div>
+											<p className="text-sm">{reply.content}</p>
+											<p className="text-xs text-muted-foreground">
+												{reply.timestamp}
+											</p>
+										</div>
+									))}
+								</div>
+							)}
+						</div>
+					))}
+				</div>
+
+				{/* Comment Input */}
+				<div className="border-t border-border px-6 py-4 space-y-3">
+					<div className="flex gap-2">
+						{Object.entries(commentBadgeTypes).map(([key, badge]) => (
+							<button
+								key={key}
+								onClick={() => setSelectedBadge(key)}
+								className={`text-xs px-2.5 py-1.5 rounded-lg border transition ${
+									selectedBadge === key
+										? badge.color
+										: "bg-muted/50 border-border hover:border-primary"
+								}`}>
+								{badge.icon} {badge.label}
+							</button>
+						))}
+					</div>
+
+					<div className="flex gap-2">
+						<textarea
+							value={newComment}
+							onChange={(e) => setNewComment(e.target.value)}
+							placeholder="Share your insight..."
+							className="flex-1 bg-muted border border-border rounded-lg px-3 py-2 text-sm placeholder-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary resize-none"
+							rows={2}
+						/>
+					</div>
+
+					<div className="flex justify-end gap-2">
+						<Button variant="outline" size="sm" onClick={closeComments}>
+							Cancel
+						</Button>
+						<Button size="sm" disabled={!newComment.trim()} onClick={addComment}>
+							Post Comment
+						</Button>
+					</div>
+				</div>
+			</div>
+		</>,
+		document.body,
+	);
+}
 
 function PostOptionsDrawer({
 	isOpen,
@@ -604,6 +1031,6 @@ function PostOptionsDrawer({
 				</div>
 			</div>
 		</div>,
-		document.body
+		document.body,
 	);
 }
