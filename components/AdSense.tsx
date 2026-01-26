@@ -33,6 +33,7 @@ export function AdSense({ pId }: AdSenseProps) {
     "/hackathon-teams",
     "/connections",
     "/recommended-connections",
+    "/search",
   ];
 
   const isExcluded = pathname && excludedPaths.some((path) => {
