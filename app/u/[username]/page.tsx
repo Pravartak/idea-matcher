@@ -1,5 +1,3 @@
-// app/u/[username]/page.tsx
-
 import {
 	collection,
 	getDocs,
@@ -16,9 +14,6 @@ import ProfileActions from "@/components/profile/ProfileActions";
 import { getAuth } from "firebase-admin/auth";
 import { cookies } from "next/headers";
 import { customInitApp } from "@/lib/firebase-admin";
-import RedirectToSignup from "@/components/RedirectToSignup";
-
-// const user = userData as User["user"];
 
 export default async function PublicProfile({
 	params,
@@ -47,13 +42,8 @@ export default async function PublicProfile({
 		} catch (e) {
 			// Session cookie is invalid, treat as logged out.
 			loggedInUserUid = null;
-			<RedirectToSignup />;
 		}
 	}
-
-	// if (!loggedInUserUid) {
-	// 	return <RedirectToSignup />;
-	// }
 
 	console.log("PUBLIC PROFILE USERNAME:", decodedUsername);
 
