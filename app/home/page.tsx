@@ -14,6 +14,8 @@ import {
 	Menu,
 	MessageSquare,
 	X,
+	Loader2,
+	LogIn,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { db } from "@/lib/firebase";
@@ -54,13 +56,31 @@ export default function FeedPage() {
 
 	const [userData, setUserData] = useState<any | null>(null);
 	const [postsData, setPostsData] = useState<Post[] | null>(null);
+	const [loading, setLoading] = useState(true);
 
 	useEffect(() => {
 		const auth = getAuth();
 
 		const unsubscribe = onAuthStateChanged(auth, async (user) => {
 			if (!user) {
-				router.push("/signup");
+				// Allow guests to view the feed (AdSense requirement)
+				try {
+					const fallbackQuery = query(
+						collection(db, "Posts"),
+						orderBy("createdAt", "desc"),
+						limit(20),
+					);
+					const fallbackSnap = await getDocs(fallbackQuery);
+					const fetchedPosts = fallbackSnap.docs.map((doc) => ({
+						id: doc.id,
+						...doc.data(),
+					})) as Post[];
+					setPostsData(fetchedPosts);
+				} catch (error) {
+					console.error("Error fetching guest feed:", error);
+					setPostsData([]);
+				}
+				setLoading(false);
 				return;
 			}
 
@@ -82,7 +102,7 @@ export default function FeedPage() {
 				const q = query(
 					collection(db, "Posts"),
 					where("tags", "array-contains-any", interests.slice(0, 10)),
-					limit(50)
+					limit(50),
 				);
 
 				const snap = await getDocs(q);
@@ -95,10 +115,10 @@ export default function FeedPage() {
 			if (fetchedPosts.length > 0) {
 				fetchedPosts.sort((a, b) => {
 					const aScore = (a.tags || []).filter((t: string) =>
-						interests.includes(t)
+						interests.includes(t),
 					).length;
 					const bScore = (b.tags || []).filter((t: string) =>
-						interests.includes(t)
+						interests.includes(t),
 					).length;
 
 					if (aScore === bScore) {
@@ -113,7 +133,7 @@ export default function FeedPage() {
 				const fallbackQuery = query(
 					collection(db, "Posts"),
 					orderBy("createdAt", "desc"),
-					limit(20)
+					limit(20),
 				);
 				const fallbackSnap = await getDocs(fallbackQuery);
 
@@ -124,6 +144,7 @@ export default function FeedPage() {
 			}
 
 			setPostsData(fetchedPosts);
+			setLoading(false);
 		});
 		return () => unsubscribe();
 	}, []);
@@ -240,33 +261,47 @@ export default function FeedPage() {
 				</nav>
 
 				<div className="pt-4 border-t border-sidebar-border">
-					<Link
-						href="/profile"
-						className={`flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-sidebar-accent transition-colors ${
-							!showSidebarText ? "justify-center" : ""
-						}`}
-						title={!showSidebarText ? "Your Profile" : undefined}>
-						<Avatar className="w-9 h-9 flex-shrink-0">
-							<AvatarImage src={userData?.Avatar} />
-							<AvatarFallback className="font-mono">
-								{(userData?.Name ?? "")
-									.split(" ")
-									.filter(Boolean)
-									.map((n: string) => n[0])
-									.join("") || "?"}
-							</AvatarFallback>
-						</Avatar>
-						{showSidebarText && (
-							<div className="flex-1 min-w-0">
-								<p className="font-mono text-sm font-medium text-foreground truncate">
-									{userData.Name}
-								</p>
-								<p className="font-mono text-xs text-muted-foreground truncate">
-									{userData.username}
-								</p>
-							</div>
-						)}
-					</Link>
+					{userData ? (
+						<Link
+							href="/profile"
+							className={`flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-sidebar-accent transition-colors ${
+								!showSidebarText ? "justify-center" : ""
+							}`}
+							title={!showSidebarText ? "Your Profile" : undefined}>
+							<Avatar className="w-9 h-9 flex-shrink-0">
+								<AvatarImage src={userData?.Avatar} />
+								<AvatarFallback className="font-mono">
+									{(userData?.Name ?? "")
+										.split(" ")
+										.filter(Boolean)
+										.map((n: string) => n[0])
+										.join("") || "IM"}
+								</AvatarFallback>
+							</Avatar>
+							{showSidebarText && (
+								<div className="flex-1 min-w-0">
+									<p className="font-mono text-sm font-medium text-foreground truncate">
+										{userData?.Name}
+									</p>
+									<p className="font-mono text-xs text-muted-foreground truncate">
+										{userData?.username}
+									</p>
+								</div>
+							)}
+						</Link>
+					) : (
+						<Link
+							href="/login"
+							className={`flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-sidebar-accent transition-colors ${
+								!showSidebarText ? "justify-center" : ""
+							}`}
+							title={!showSidebarText ? "Log In" : undefined}>
+							<LogIn className="w-5 h-5 flex-shrink-0" />
+							{showSidebarText && (
+								<span className="whitespace-nowrap">Log In</span>
+							)}
+						</Link>
+					)}
 				</div>
 			</aside>
 
@@ -289,17 +324,48 @@ export default function FeedPage() {
 
 				{/* Feed */}
 				<div className="p-4 md:p-6 space-y-4 max-w-2xl mx-auto">
-					{postsData?.map((post) => (
-						<PostCard
-							key={post.id}
-							post={post}
-							onDelete={(id) =>
-								setPostsData((prev) =>
-									prev ? prev.filter((p) => p.id !== id) : null
-								)
-							}
-						/>
-					))}
+					{loading ? (
+						<div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+							<Loader2 className="w-8 h-8 animate-spin mb-2" />
+							<p>Loading feed...</p>
+						</div>
+					) : (
+						<>
+							{!userData && (
+								<div className="mb-6 p-6 bg-card border border-border rounded-xl">
+									<h1 className="text-xl font-semibold mb-2 text-foreground">
+										Welcome to the Developer Community
+									</h1>
+									<p className="text-muted-foreground leading-relaxed">
+										Browse ideas from developers around the world. This feed
+										showcases the latest projects, hackathon teams, and
+										collaboration opportunities. Log in to connect, collaborate,
+										and bring your vision to life.
+									</p>
+								</div>
+							)}
+							{postsData && postsData.length > 0 ? (
+								postsData.map((post) => (
+									<PostCard
+										key={post.id}
+										post={post}
+										onDelete={(id) =>
+											setPostsData((prev) =>
+												prev ? prev.filter((p) => p.id !== id) : null,
+											)
+										}
+									/>
+								))
+							) : (
+								<div className="text-center py-12 text-muted-foreground border-2 border-dashed border-border rounded-lg">
+									<p className="text-lg font-medium">No posts yet</p>
+									<p className="text-sm mt-1">
+										Connect with others to see their ideas here.
+									</p>
+								</div>
+							)}
+						</>
+					)}
 				</div>
 			</main>
 		</div>

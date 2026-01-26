@@ -7,6 +7,7 @@ import { SpeedInsights } from "@vercel/speed-insights/react"
 import "./globals.css"
 import { JetBrains_Mono } from "next/font/google"
 import { Suspense } from "react"
+import { AdSense } from "@/components/AdSense"
 
 const jetBrains = JetBrains_Mono({
   subsets: ["latin"],
@@ -31,6 +32,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${jetBrains.variable} ${GeistSans.variable} ${GeistMono.variable} dark antialiased`}>
       <body className="font-sans">
+        <AdSense pId="ca-pub-6553407246371441" />
         <Suspense fallback={<div>Loading...</div>}>{children}</Suspense>
         <Analytics />
         <SpeedInsights />
