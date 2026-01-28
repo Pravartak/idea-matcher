@@ -39,7 +39,6 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { createPortal } from "react-dom";
 import { deleteObject, ref } from "firebase/storage";
-import { get } from "http";
 
 export interface PostMedia {
 	type: "image" | "video" | "audio";
@@ -334,15 +333,21 @@ export function MediaItem({ media }: { media: PostMedia }) {
 export const PostCard = ({
 	post,
 	onDelete,
+	GuestLoginDialog,
 }: {
 	post: Post;
 	onDelete?: (id: string) => void;
+	GuestLoginDialog?: React.ComponentType<{
+		isOpen: boolean;
+		onClose: () => void;
+	}>;
 }) => {
 	const [isLiked, setIsLiked] = useState(false);
 	const [isBookmarked, setIsBookmarked] = useState(false);
 	const [isFollowing, setIsFollowing] = useState(false);
 	const [showDrawer, setShowDrawer] = useState(false);
 	const [commentsOpen, setCommentsOpen] = useState(false);
+	const [showLoginDialog, setShowLoginDialog] = useState(false);
 	const [likesCount, setLikesCount] = useState(post.likesCount);
 	const [commentsCount, setCommentsCount] = useState(post.commentsCount);
 	const viewerUid = auth.currentUser?.uid;
@@ -385,7 +390,10 @@ export const PostCard = ({
 	}, [post.id, viewerUid, post.authorUid, isOwner]);
 
 	const handleLike = async () => {
-		if (!viewerUid) return;
+		if (!viewerUid) {
+			setShowLoginDialog(true);
+			return;
+		}
 
 		const postRef = doc(db, "Posts", post.id);
 		const likeRef = doc(db, "Posts", post.id, "likes", viewerUid);
@@ -404,6 +412,10 @@ export const PostCard = ({
 	};
 
 	const handleBookmark = () => {
+		if (!viewerUid) {
+			setShowLoginDialog(true);
+			return;
+		}
 		setIsBookmarked(!isBookmarked);
 	};
 
@@ -435,7 +447,11 @@ export const PostCard = ({
 	};
 
 	const handleUnfollow = async () => {
-		if (!viewerUid) return;
+		if (!viewerUid) {
+			setShowDrawer(false);
+			setShowLoginDialog(true);
+			return;
+		}
 
 		const userRef = doc(db, "users", post.authorUid);
 		const followersRef = doc(db, "followers", post.authorUid);
@@ -470,7 +486,7 @@ export const PostCard = ({
 							alt={post.author?.name || "Idea Matcher"}
 						/>
 						<AvatarFallback className="font-mono">
-							{post.author?.name[0] || "U"}
+							{(post.author?.name || "IM")[0]}
 						</AvatarFallback>
 					</Avatar>
 					<div>
@@ -590,7 +606,12 @@ export const PostCard = ({
 				onClose={() => setCommentsOpen(false)}
 				onCommentAdded={() => setCommentsCount((prev) => prev + 1)}
 				onCommentDeleted={() => setCommentsCount((prev) => prev - 1)}
+				GuestLoginDialog={GuestLoginDialog}
 			/>
+			{GuestLoginDialog && <GuestLoginDialog
+				isOpen={showLoginDialog}
+				onClose={() => setShowLoginDialog(false)}
+			/>}
 		</article>
 	);
 };
@@ -602,6 +623,7 @@ function CommentsSection({
 	postAuthorUid,
 	onCommentAdded,
 	onCommentDeleted,
+	GuestLoginDialog,
 }: {
 	postId: string;
 	isOpen: boolean;
@@ -609,13 +631,19 @@ function CommentsSection({
 	postAuthorUid: string;
 	onCommentAdded?: () => void;
 	onCommentDeleted?: () => void;
+	GuestLoginDialog?: React.ComponentType<{
+		isOpen: boolean;
+		onClose: () => void;
+	}>;
 }) {
 	const [drawerHeight, setDrawerHeight] = useState(60);
 	const [isDragging, setIsDragging] = useState(false);
 	const [newComment, setNewComment] = useState("");
 	const [comments, setComments] = useState<Comment[]>([]);
 	const [selectedBadge, setSelectedBadge] = useState("general");
+	const [showLoginDialog, setShowLoginDialog] = useState(false);
 	const [commentWithOptions, setCommentWithOptions] = useState<Comment | null>(null);
+	const [isCommentLiked, setIsCommentLiked] = useState(false);
 	const viewerUid = auth.currentUser?.uid;
 
 	const drawerHeightRef = useRef(drawerHeight);
@@ -728,6 +756,14 @@ function CommentsSection({
 		getComments();
 	}, [postId, isOpen]);
 
+	const handleAuthAction = (action: () => void) => {
+		if (!auth.currentUser) {
+			setShowLoginDialog(true);
+			return;
+		}
+		action();
+	};
+
 	const addComment = async () => {
 		if (!newComment.trim()) return;
 
@@ -735,7 +771,10 @@ function CommentsSection({
 		const commentsRef = collection(db, "Posts", postId, "comments");
 		const viewer = auth.currentUser;
 
-		if (!viewer) return;
+		if (!viewer) {
+			setShowLoginDialog(true);
+			return;
+		}
 
 		const commenter = doc(db, "users", viewer?.uid!);
 		const commenterSnap = await getDoc(commenter);
@@ -779,6 +818,16 @@ function CommentsSection({
 			setComments((prev) => prev.filter((c) => c.id !== newCommentRef.id));
 		}
 	};
+
+	const likeComment = async () => {
+		if (!viewerUid) {
+			setShowLoginDialog(true);
+			return;
+		}
+
+		const postRef = doc(db, "Posts", postId);
+		const commentLikeRef = doc(db, "Posts", postId, "comments", commentWithOptions!.id, "likes", viewerUid);
+	}
 
 	const deleteComment = async (commentId: string) => {
 		try {
@@ -923,11 +972,15 @@ function CommentsSection({
 
 							{/* Engagement */}
 							<div className="flex items-center gap-4 pt-2 text-xs text-muted-foreground">
-								<button className="flex items-center gap-1 hover:text-foreground transition">
+								<button
+									onClick={() => handleAuthAction(() => {})}
+									className="flex items-center gap-1 hover:text-foreground transition">
 									<Heart className="w-4 h-4" />
 									{comment.likes}
 								</button>
-								<button className="flex items-center gap-1 hover:text-foreground transition">
+								<button
+									onClick={() => handleAuthAction(() => {})}
+									className="flex items-center gap-1 hover:text-foreground transition">
 									<LinkIcon className="w-4 h-4" />
 									Reply
 								</button>
@@ -1034,6 +1087,10 @@ function CommentsSection({
 					</div>
 				</div>
 			</div>
+			{GuestLoginDialog && <GuestLoginDialog
+				isOpen={showLoginDialog}
+				onClose={() => setShowLoginDialog(false)}
+			/>}
 		</>,
 		document.body,
 	);
