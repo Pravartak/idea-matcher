@@ -17,6 +17,7 @@ import {
 	Flag,
 	Link as LinkIcon,
 	Pencil,
+	X,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { auth, db, storage } from "@/lib/firebase";
@@ -33,6 +34,8 @@ import {
 	query,
 	orderBy,
 	collection,
+	arrayUnion,
+	arrayRemove,
 } from "firebase/firestore";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -93,7 +96,7 @@ interface Reply {
 	};
 	content: string;
 	timestamp: string;
-	likes: number;
+	likes: string[];
 }
 
 interface Comment {
@@ -108,7 +111,7 @@ interface Comment {
 	content: string;
 	badge: CommentBadgeType;
 	timestamp: string;
-	likes: number;
+	likes: string[];
 	replies?: Reply[];
 	createdAt?: any;
 }
@@ -608,10 +611,12 @@ export const PostCard = ({
 				onCommentDeleted={() => setCommentsCount((prev) => prev - 1)}
 				GuestLoginDialog={GuestLoginDialog}
 			/>
-			{GuestLoginDialog && <GuestLoginDialog
-				isOpen={showLoginDialog}
-				onClose={() => setShowLoginDialog(false)}
-			/>}
+			{GuestLoginDialog && (
+				<GuestLoginDialog
+					isOpen={showLoginDialog}
+					onClose={() => setShowLoginDialog(false)}
+				/>
+			)}
 		</article>
 	);
 };
@@ -642,8 +647,14 @@ function CommentsSection({
 	const [comments, setComments] = useState<Comment[]>([]);
 	const [selectedBadge, setSelectedBadge] = useState("general");
 	const [showLoginDialog, setShowLoginDialog] = useState(false);
-	const [commentWithOptions, setCommentWithOptions] = useState<Comment | null>(null);
-	const [isCommentLiked, setIsCommentLiked] = useState(false);
+	const [commentWithOptions, setCommentWithOptions] = useState<Comment | null>(
+		null,
+	);
+	const [replyingTo, setReplyingTo] = useState<{
+		id: string;
+		username: string;
+	} | null>(null);
+	const [likedComments, setLikedComments] = useState<Set<string>>(new Set());
 	const viewerUid = auth.currentUser?.uid;
 
 	const drawerHeightRef = useRef(drawerHeight);
@@ -692,7 +703,8 @@ function CommentsSection({
 
 		const handleTouchMove = (e: TouchEvent) => {
 			const viewportHeight = window.innerHeight;
-			const newHeight = ((viewportHeight - e.touches[0].clientY) / viewportHeight) * 100;
+			const newHeight =
+				((viewportHeight - e.touches[0].clientY) / viewportHeight) * 100;
 
 			if (newHeight > 30 && newHeight < 95) {
 				setDrawerHeight(newHeight);
@@ -725,6 +737,7 @@ function CommentsSection({
 		onClose();
 		setNewComment("");
 		setSelectedBadge("general");
+		setReplyingTo(null);
 	};
 
 	useEffect(() => {
@@ -732,9 +745,7 @@ function CommentsSection({
 		const getComments = async () => {
 			try {
 				if (!postId) return;
-				const q = query(
-					collection(db, "Posts", postId, "comments"),
-				);
+				const q = query(collection(db, "Posts", postId, "comments"));
 				const querySnapshot = await getDocs(q);
 				const fetchedComments = querySnapshot.docs.map((doc) => ({
 					id: doc.id,
@@ -743,8 +754,16 @@ function CommentsSection({
 
 				// Sort client-side to avoid index issues on empty collections
 				fetchedComments.sort((a, b) => {
-					const timeA = a.createdAt?.seconds ? a.createdAt.seconds : (a.createdAt ? new Date(a.createdAt).getTime() / 1000 : 0);
-					const timeB = b.createdAt?.seconds ? b.createdAt.seconds : (b.createdAt ? new Date(b.createdAt).getTime() / 1000 : 0);
+					const timeA = a.createdAt?.seconds
+						? a.createdAt.seconds
+						: a.createdAt
+							? new Date(a.createdAt).getTime() / 1000
+							: 0;
+					const timeB = b.createdAt?.seconds
+						? b.createdAt.seconds
+						: b.createdAt
+							? new Date(b.createdAt).getTime() / 1000
+							: 0;
 					return timeB - timeA;
 				});
 
@@ -755,6 +774,22 @@ function CommentsSection({
 		};
 		getComments();
 	}, [postId, isOpen]);
+
+	useEffect(() => {
+		if (!viewerUid || comments.length === 0) return;
+
+		const checkLikes = () => {
+			const newLiked = new Set<string>();
+			comments.forEach((c) => {
+				if (Array.isArray(c.likes) && c.likes.includes(viewerUid)) {
+					newLiked.add(c.id);
+				}
+			});
+			setLikedComments(newLiked);
+		};
+
+		checkLikes();
+	}, [comments, viewerUid]);
 
 	const handleAuthAction = (action: () => void) => {
 		if (!auth.currentUser) {
@@ -767,8 +802,6 @@ function CommentsSection({
 	const addComment = async () => {
 		if (!newComment.trim()) return;
 
-		const postRef = doc(db, "Posts", postId);
-		const commentsRef = collection(db, "Posts", postId, "comments");
 		const viewer = auth.currentUser;
 
 		if (!viewer) {
@@ -780,54 +813,127 @@ function CommentsSection({
 		const commenterSnap = await getDoc(commenter);
 		const commenterData = commenterSnap.data();
 
-		const newCommentRef = doc(commentsRef);
-
-		const newCommentData = {
-			authorUid: commenterData?.uid || "ideamatcheruser",
-			author: {
-				name: commenterData?.Name || "IdeaMatcher User",
-				username: commenterData?.username || "ideamatcheruser",
-				avatar: commenterData?.Avatar || "/placeholder.svg",
-				verified: commenterData?.verified || false,
-			},
-			content: newComment,
-			badge: commentBadgeTypes[selectedBadge],
-			timestamp: new Date().getTime().toString(),
-			createdAt: new Date(),
-			likes: 0,
-			replies: [],
+		const author = {
+			name: commenterData?.Name || "IdeaMatcher User",
+			username: commenterData?.username || "ideamatcheruser",
+			avatar: commenterData?.Avatar || "/placeholder.svg",
+			verified: commenterData?.verified || false,
 		};
 
-		// Optimistic update
-		setComments((prev) => [{ ...newCommentData, id: newCommentRef.id } as unknown as Comment, ...prev]);
-		setNewComment("");
+		if (replyingTo) {
+			const reply: Reply = {
+				id: Date.now().toString(),
+				author,
+				content: newComment,
+				timestamp: new Date().toLocaleString(),
+				likes: [],
+			};
 
-		try {
-			await setDoc(newCommentRef, newCommentData);
+			const commentRef = doc(db, "Posts", postId, "comments", replyingTo.id);
+
+			// Optimistic update
+			setComments((prev) =>
+				prev.map((c) => {
+					if (c.id === replyingTo.id) {
+						return { ...c, replies: [...(c.replies || []), reply] };
+					}
+					return c;
+				}),
+			);
+
+			setNewComment("");
+			setReplyingTo(null);
+
 			try {
-				await updateDoc(postRef, {
-					commentsCount: increment(1),
+				await updateDoc(commentRef, {
+					replies: arrayUnion(reply),
 				});
-				onCommentAdded?.();
 			} catch (error) {
-				console.error("Error updating comment count:", error);
-				onCommentAdded?.();
+				console.error("Error adding reply:", error);
 			}
-		} catch (error) {
-			console.error("Error adding comment:", error);
-			setComments((prev) => prev.filter((c) => c.id !== newCommentRef.id));
+		} else {
+			const postRef = doc(db, "Posts", postId);
+			const commentsRef = collection(db, "Posts", postId, "comments");
+			const newCommentRef = doc(commentsRef);
+
+			const newCommentData = {
+				authorUid: viewer.uid,
+				author,
+				content: newComment,
+				badge: commentBadgeTypes[selectedBadge],
+				timestamp: new Date().getTime().toString(),
+				createdAt: new Date(),
+				likes: [],
+				replies: [],
+			};
+
+			// Optimistic update
+			setComments((prev) => [
+				{ ...newCommentData, id: newCommentRef.id } as unknown as Comment,
+				...prev,
+			]);
+			setNewComment("");
+
+			try {
+				await setDoc(newCommentRef, newCommentData);
+				try {
+					await updateDoc(postRef, {
+						commentsCount: increment(1),
+					});
+					onCommentAdded?.();
+				} catch (error) {
+					console.error("Error updating comment count:", error);
+					onCommentAdded?.();
+				}
+			} catch (error) {
+				console.error("Error adding comment:", error);
+				setComments((prev) => prev.filter((c) => c.id !== newCommentRef.id));
+			}
 		}
 	};
 
-	const likeComment = async () => {
+	const toggleCommentLike = async (commentId: string) => {
 		if (!viewerUid) {
 			setShowLoginDialog(true);
 			return;
 		}
 
-		const postRef = doc(db, "Posts", postId);
-		const commentLikeRef = doc(db, "Posts", postId, "comments", commentWithOptions!.id, "likes", viewerUid);
-	}
+		const isLiked = likedComments.has(commentId);
+		const commentRef = doc(db, "Posts", postId, "comments", commentId);
+
+		setLikedComments((prev) => {
+			const next = new Set(prev);
+			if (isLiked) {
+				next.delete(commentId);
+			} else {
+				next.add(commentId);
+			}
+			return next;
+		});
+
+		setComments((prev) =>
+			prev.map((c) => {
+				if (c.id === commentId) {
+					const currentLikes = Array.isArray(c.likes) ? c.likes : [];
+					const newLikes = isLiked
+						? currentLikes.filter((uid) => uid !== viewerUid)
+						: [...currentLikes, viewerUid];
+					return { ...c, likes: newLikes };
+				}
+				return c;
+			}),
+		);
+
+		try {
+			if (isLiked) {
+				await updateDoc(commentRef, { likes: arrayRemove(viewerUid) });
+			} else {
+				await updateDoc(commentRef, { likes: arrayUnion(viewerUid) });
+			}
+		} catch (error) {
+			console.error("Error toggling like:", error);
+		}
+	};
 
 	const deleteComment = async (commentId: string) => {
 		try {
@@ -927,12 +1033,17 @@ function CommentsSection({
 											</span>
 										</div>
 										<p className="text-xs text-muted-foreground">
-											@{comment.author?.username?.replace("@", "") || "anonymous"} ·{" "}
+											@
+											{comment.author?.username?.replace("@", "") ||
+												"anonymous"}{" "}
+											·{" "}
 											{comment.createdAt?.seconds
-												? new Date(comment.createdAt.seconds * 1000).toLocaleString()
+												? new Date(
+														comment.createdAt.seconds * 1000,
+													).toLocaleString()
 												: comment.createdAt instanceof Date
-												? comment.createdAt.toLocaleString()
-												: "Just now"}
+													? comment.createdAt.toLocaleString()
+													: "Just now"}
 										</p>
 									</div>
 								</div>
@@ -966,20 +1077,36 @@ function CommentsSection({
 												</div>
 											);
 										}
-										return <p key={i} className="whitespace-pre-wrap">{paragraph}</p>;
+										return (
+											<p key={i} className="whitespace-pre-wrap">
+												{paragraph}
+											</p>
+										);
 									})}
 							</div>
 
 							{/* Engagement */}
 							<div className="flex items-center gap-4 pt-2 text-xs text-muted-foreground">
 								<button
-									onClick={() => handleAuthAction(() => {})}
-									className="flex items-center gap-1 hover:text-foreground transition">
-									<Heart className="w-4 h-4" />
-									{comment.likes}
+									onClick={() => toggleCommentLike(comment.id)}
+									className={`flex items-center gap-1 transition ${likedComments.has(comment.id) ? "text-red-500" : "hover:text-foreground"}`}>
+									<Heart
+										className={`w-4 h-4 ${likedComments.has(comment.id) ? "fill-current" : ""}`}
+									/>
+									{Array.isArray(comment.likes)
+										? comment.likes.length
+										: (comment.likes as any) || 0}
 								</button>
 								<button
-									onClick={() => handleAuthAction(() => {})}
+									onClick={() =>
+										handleAuthAction(() => {
+											setReplyingTo({
+												id: comment.id,
+												username: comment.author.username,
+											});
+											setNewComment("");
+										})
+									}
 									className="flex items-center gap-1 hover:text-foreground transition">
 									<LinkIcon className="w-4 h-4" />
 									Reply
@@ -1005,7 +1132,7 @@ function CommentsSection({
 												<span className="text-xs font-semibold">
 													{reply.author.name}
 												</span>
-												{reply.author.verified && (
+												{reply.author?.verified && (
 													<LinkIcon className="w-3 h-3 text-blue-400" />
 												)}
 												<span className="text-xs text-primary">
@@ -1052,6 +1179,22 @@ function CommentsSection({
 				)}
 				{/* Comment Input */}
 				<div className="border-t border-border px-6 py-4 space-y-3">
+					{replyingTo && (
+						<div className="flex items-center justify-between px-3 py-2 bg-muted/50 rounded-lg text-xs text-muted-foreground">
+							<span>
+								Replying to{" "}
+								<span className="font-semibold text-primary">
+									@{replyingTo.username}
+								</span>
+							</span>
+							<button
+								onClick={() => setReplyingTo(null)}
+								className="hover:text-foreground">
+								<X className="w-4 h-4" />
+							</button>
+						</div>
+					)}
+
 					<div className="flex gap-2">
 						{Object.entries(commentBadgeTypes).map(([key, badge]) => (
 							<button
@@ -1071,7 +1214,9 @@ function CommentsSection({
 						<textarea
 							value={newComment}
 							onChange={(e) => setNewComment(e.target.value)}
-							placeholder="Share your insight..."
+							placeholder={
+								replyingTo ? "Write a reply..." : "Share your insight..."
+							}
 							className="flex-1 bg-muted border border-border rounded-lg px-3 py-2 text-sm placeholder-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary resize-none"
 							rows={2}
 						/>
@@ -1081,16 +1226,21 @@ function CommentsSection({
 						<Button variant="outline" size="sm" onClick={closeComments}>
 							Cancel
 						</Button>
-						<Button size="sm" disabled={!newComment.trim()} onClick={addComment}>
+						<Button
+							size="sm"
+							disabled={!newComment.trim()}
+							onClick={addComment}>
 							Post Comment
 						</Button>
 					</div>
 				</div>
 			</div>
-			{GuestLoginDialog && <GuestLoginDialog
-				isOpen={showLoginDialog}
-				onClose={() => setShowLoginDialog(false)}
-			/>}
+			{GuestLoginDialog && (
+				<GuestLoginDialog
+					isOpen={showLoginDialog}
+					onClose={() => setShowLoginDialog(false)}
+				/>
+			)}
 		</>,
 		document.body,
 	);
