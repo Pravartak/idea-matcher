@@ -80,7 +80,7 @@ export default function ProfileSetupPage() {
 			);
 			return;
 		} else {
-			const specialChars = /[^a-zA-Z0-9]/;
+			const specialChars = /[^a-zA-Z0-9_]/;
 			if (specialChars.test(username)) {
 				alert("Username cannot contain special characters.");
 				return;
