@@ -80,6 +80,12 @@ export default function ProfileSetupPage() {
 			);
 			return;
 		} else {
+			const specialChars = /[^a-zA-Z0-9]/;
+			if (specialChars.test(username)) {
+				alert("Username cannot contain special characters.");
+				return;
+			}
+
 			const usernameRef = doc(db, "usernames", username);
 			const usernameSnap = await getDoc(usernameRef);
 
