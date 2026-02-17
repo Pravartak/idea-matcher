@@ -34,6 +34,12 @@ import {
 	deleteField,
 	increment,
 	getDoc,
+	query,
+	collection,
+	where,
+	arrayRemove,
+	arrayUnion,
+	writeBatch,
 } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 import { Post, PostCard } from "../postComponents/PostComponents";
@@ -43,6 +49,77 @@ interface ProfileViewProps {
 	isOwner: User["isOwner"];
 	posts: Post[];
 }
+
+export const toggleConnectionStatus = async (
+	targetUid: string,
+	viewerUid: string,
+	currentStatus: string | null,
+) => {
+	const viewerRef = doc(db, "Connections", viewerUid);
+	const targetRef = doc(db, "Connections", targetUid);
+	const viewerUserRef = doc(db, "users", viewerUid);
+	const targetUserRef = doc(db, "users", targetUid);
+
+	if (viewerUid === targetUid) {
+		alert("You cannot connect with yourself!");
+		return currentStatus;
+	}
+
+	try {
+		const batch = writeBatch(db);
+
+		if (currentStatus === "requested") {
+			const confirm = window.confirm("Are you sure you want to remove request?");
+			if (!confirm) return currentStatus;
+			
+			// Remove from viewer's SentRequests and target's Requests
+			batch.set(viewerRef, { SentRequests: arrayRemove(targetUid) }, { merge: true });
+			batch.set(targetRef, { Requests: arrayRemove(viewerUid) }, { merge: true });
+			
+			await batch.commit();
+			return "notConnected";
+		}
+		if (currentStatus === "incomingRequest") {
+			// Accept request
+			batch.set(viewerRef, { Connected: arrayUnion(targetUid), Requests: arrayRemove(targetUid) }, { merge: true });
+			batch.set(targetRef, { Connected: arrayUnion(viewerUid), SentRequests: arrayRemove(viewerUid) }, { merge: true });
+			
+			batch.update(viewerUserRef, { Connections: increment(1) });
+			batch.update(targetUserRef, { Connections: increment(1) });
+
+			await batch.commit();
+			return "connected";
+		}
+		if (currentStatus === "connected") {
+			const confirm = window.confirm("Are you sure you want to disconnect?");
+			if (!confirm) return currentStatus;
+			
+			batch.update(targetUserRef, { Connections: increment(-1) });
+			batch.update(viewerUserRef, { Connections: increment(-1) });
+			
+			batch.set(viewerRef, { Connected: arrayRemove(targetUid) }, { merge: true });
+			batch.set(targetRef, { Connected: arrayRemove(viewerUid) }, { merge: true });
+			
+			await batch.commit();
+			return "notConnected";
+		}
+		if (currentStatus === "notConnected" || currentStatus === "not-requested" || !currentStatus) {
+			batch.set(viewerRef, { SentRequests: arrayUnion(targetUid) }, { merge: true });
+			batch.set(
+				targetRef,
+				{ Requests: arrayUnion(viewerUid) },
+				{ merge: true },
+			);
+			await batch.commit();
+			return "requested";
+		}
+		return currentStatus;
+	} catch (error) {
+		console.error("Error updating connection status:", error);
+		alert("Failed to update connection status. Missing permissions.");
+		return currentStatus;
+	}
+};
 
 export default function ProfilePage({
 	user,
@@ -58,7 +135,7 @@ export default function ProfilePage({
 		if (meta) {
 			meta.setAttribute(
 				"content",
-				"width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0"
+				"width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0",
 			);
 		}
 
@@ -69,7 +146,7 @@ export default function ProfilePage({
 		};
 	}, []);
 
-	const [isConnected, setIsConnected] = useState(false);
+	const [connectionStatus, setConnectionStatus] = useState<string | null>(null);
 	const [isFollowing, setIsFollowing] = useState(false);
 	const [isSharing, setIsSharing] = useState(false);
 	// const [isLiked, setIsLiked] = useState(false);
@@ -82,7 +159,7 @@ export default function ProfilePage({
 
 	useEffect(() => {
 		if (isOwner) return;
-		const checkFollowing = async (currentUser: any) => {
+		const checkStatus = async (currentUser: any) => {
 			if (currentUser && user.uid) {
 				try {
 					const followersRef = doc(db, "followers", user.uid);
@@ -92,12 +169,30 @@ export default function ProfilePage({
 					} else {
 						setIsFollowing(false);
 					}
+
+					const connectionsRef = doc(db, "Connections", currentUser.uid);
+					const connectionsSnap = await getDoc(connectionsRef);
+
+					if (connectionsSnap.exists()) {
+						const data = connectionsSnap.data();
+						if (data.Connected?.includes(user.uid)) {
+							setConnectionStatus("connected");
+						} else if (data.Requests?.includes(user.uid)) {
+							setConnectionStatus("incomingRequest");
+						} else if (data.SentRequests?.includes(user.uid)) {
+							setConnectionStatus("requested");
+						} else {
+							setConnectionStatus("notConnected");
+						}
+					} else {
+						setConnectionStatus("notConnected");
+					}
 				} catch (error) {
-					console.error("Error checking following status:", error);
+					console.error("Error checking status:", error);
 				}
 			}
 		};
-		const unsubscribe = auth.onAuthStateChanged((user) => checkFollowing(user));
+		const unsubscribe = auth.onAuthStateChanged((user) => checkStatus(user));
 		return () => unsubscribe();
 	}, [user.uid, isOwner]);
 
@@ -125,16 +220,16 @@ export default function ProfilePage({
 
 	const handleConnect = async () => {
 		if (!user.uid) return;
-		try {
-			await updateDoc(doc(db, "users", user.uid!), {
-				Connections: isConnected
-					? user.Connections! - 1
-					: user.Connections! + 1,
-			});
-			setIsConnected(!isConnected);
-		} catch (error) {
-			console.error("Error updating connection status:", error);
-			alert("Failed to update connection status. Missing permissions.");
+		const viewerUid = auth.currentUser?.uid;
+		if (!viewerUid) return;
+
+		const newStatus = await toggleConnectionStatus(
+			user.uid,
+			viewerUid,
+			connectionStatus,
+		);
+		if (newStatus) {
+			setConnectionStatus(newStatus);
 		}
 	};
 
@@ -148,20 +243,22 @@ export default function ProfilePage({
 
 		if (viewerUid === user.uid) return alert("You cannot follow yourself!");
 		try {
+			const batch = writeBatch(db);
 			if (isFollowing) {
-				await updateDoc(targetUid, { Followers: increment(-1) });
-				await updateDoc(followersRef, { [viewerUid]: deleteField() });
-				await updateDoc(doc(db, "users", viewerUid), {
+				batch.update(targetUid, { Followers: increment(-1) });
+				batch.update(followersRef, { [viewerUid]: deleteField() });
+				batch.update(doc(db, "users", viewerUid), {
 					Following: increment(-1),
 				});
 			} else {
-				await updateDoc(targetUid, { Followers: increment(1) });
-				await setDoc(followersRef, { [viewerUid]: true }, { merge: true });
-				await updateDoc(doc(db, "users", viewerUid), {
+				batch.update(targetUid, { Followers: increment(1) });
+				batch.set(followersRef, { [viewerUid]: true }, { merge: true });
+				batch.update(doc(db, "users", viewerUid), {
 					Following: increment(1),
 				});
 			}
 
+			await batch.commit();
 			setIsFollowing(!isFollowing);
 		} catch (error) {
 			console.error("Error updating follow status:", error);
@@ -265,14 +362,24 @@ export default function ProfilePage({
 				) : (
 					<div className="mb-6 flex flex-col gap-2 xs:flex-row xs:gap-3 sm:mb-8">
 						<Button
-							onClick={() => setIsConnected(!isConnected)}
+							onClick={handleConnect}
 							className={`flex-1 text-xs font-medium sm:text-sm ${
-								isConnected
+								connectionStatus === "connected"
 									? "bg-accent text-accent-foreground hover:bg-accent/80"
+									: connectionStatus === "requested"
+									? "bg-secondary text-secondary-foreground hover:bg-secondary/80" 
+									: connectionStatus === "incomingRequest"
+									? "bg-green-600 text-white hover:bg-green-700"
 									: "bg-primary text-primary-foreground hover:bg-primary/90"
 							}`}>
 							<UserPlus className="mr-1.5 h-3.5 w-3.5 sm:mr-2 sm:h-4 sm:w-4" />
-							{isConnected ? "Connected" : "Connect"}
+							{connectionStatus === "connected"
+								? "Connected"
+								: connectionStatus === "incomingRequest"
+								? "Accept Request"
+								: connectionStatus === "requested"
+								? "Requested"
+								: "Connect"}
 						</Button>
 						<Button
 							onClick={handleFollow}

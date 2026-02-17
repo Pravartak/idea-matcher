@@ -2,7 +2,7 @@
 
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
-import type { User } from "@/app/connections/page"
+import type { User } from "@/app/connections/ConnectionsClient"
 
 type Props = {
   user: User

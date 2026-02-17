@@ -486,7 +486,7 @@ export const PostCard = ({
 					<Avatar className="w-11 h-11">
 						<AvatarImage
 							src={post.author?.avatar || "/placeholder.svg"}
-							alt={post.author?.name || "Idea Matcher"}
+							alt={post.author?.name || "IdeaMatcher"}
 						/>
 						<AvatarFallback className="font-mono">
 							{(post.author?.name || "IM")[0]}

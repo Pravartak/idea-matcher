@@ -27,3 +27,11 @@ export type User = {
 	};
 	isOwner: boolean;
 };
+
+export type UserTile = {
+	uid: string;
+	username: string;
+	Name: string;
+	Avatar: string;
+	verified: boolean;
+}
