@@ -26,6 +26,7 @@ import {
 	where,
 	doc,
 	getDoc,
+	onSnapshot,
 } from "firebase/firestore";
 import { UserTile } from "@/components/types/user";
 import { ChatTileProps } from "@/components/chatComponents/ChatComponents";
@@ -62,6 +63,7 @@ export default function InboxPage({
 	const [connections, setConnections] = useState<UserTile[]>([]);
 	const [suggestedUsers, setSuggestedUsers] = useState<UserTile[]>([]);
 	const [connectionStatuses, setConnectionStatuses] = useState<Record<string, ConnectionStatus>>({});
+	const [currentUser, setCurrentUser] = useState<any>(null);
 
 	useEffect(() => {
 		setChats(initialChats);
@@ -70,6 +72,7 @@ export default function InboxPage({
 
 	useEffect(() => {
 		const unsubscribe = auth.onAuthStateChanged(async (user) => {
+			setCurrentUser(user);
 			if (user) {
 				try {
 					const userDoc = await getDoc(doc(db, "users", user.uid));
@@ -90,6 +93,64 @@ export default function InboxPage({
 		});
 		return () => unsubscribe();
 	}, []);
+
+	useEffect(() => {
+		if (!currentUser) return;
+
+		const q = query(
+			collection(db, "Conversations"),
+			where("members", "array-contains", currentUser.uid)
+		);
+
+		const unsubscribe = onSnapshot(q, async (snapshot) => {
+			const chatPromises = snapshot.docs.map(async (docSnapshot) => {
+				const data = docSnapshot.data();
+				const otherUserId = data.members.find((uid: string) => uid !== currentUser.uid) || currentUser.uid;
+				
+				let otherUserData = { name: "Unknown", username: "unknown", avatar: "" };
+				if (otherUserId) {
+					try {
+						const userDocRef = doc(db, "users", otherUserId);
+						const userDocSnap = await getDoc(userDocRef);
+						if (userDocSnap.exists()) {
+							const userData = userDocSnap.data();
+							otherUserData = {
+								name: userData.Name || "Unknown",
+								username: userData.username || "unknown",
+								avatar: userData.Avatar || userData.avatar || "placeholder.svg",
+							};
+						}
+					} catch (e) {
+						console.error("Error fetching other user", e);
+					}
+				}
+
+				return {
+					id: docSnapshot.id,
+					name: otherUserId === currentUser.uid ? `${otherUserData.name} (You)` : otherUserData.name,
+					username: otherUserData.username,
+					avatar: otherUserData.avatar,
+					lastMessage: data.lastMessage || "",
+					timestamp: data.lastMessageAt ? data.lastMessageAt.toDate().toISOString() : new Date().toISOString(),
+					unread: data.unreadCount?.[currentUser.uid] || 0,
+					verified: data.verified || false,
+					members: data.members
+				} as ChatTileProps;
+			});
+
+			const resolvedChats = await Promise.all(chatPromises);
+			resolvedChats.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+			setChats(resolvedChats);
+		});
+
+		return () => unsubscribe();
+	}, [currentUser]);
+
+	useEffect(() => {
+		if (!searchQuery) {
+			setFilteredChats(chats);
+		}
+	}, [chats, searchQuery]);
 
 	const handleSearch = async (searchTerm: string) => {
 		setSearchQuery(searchTerm);
@@ -306,6 +367,16 @@ export default function InboxPage({
 				<p className="text-xs text-muted-foreground">{user.username}</p>
 			</div>
 
+			{connectionStatuses[user.uid] === "connected" && (
+				<Button
+					variant="ghost"
+					size="icon"
+					onClick={() => router.push(`/c/${user.username}`)}
+					className="mr-2">
+					<MessageSquare className="h-4 w-4" />
+				</Button>
+			)}
+
 			<Button
 				variant={getConnectionButtonVariant(user.uid)}
 				size="sm"
@@ -407,7 +478,8 @@ export default function InboxPage({
 							filteredChats.map((chat) => (
 								<div
 									key={chat.id}
-									className="flex items-center gap-3 p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors cursor-pointer">
+									className="flex items-center gap-3 p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors cursor-pointer"
+									onClick={() => router.push(`c/${chat.username}`)}>
 									{/* Avatar */}
 									<div className="relative">
 										<Avatar>

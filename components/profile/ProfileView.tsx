@@ -396,15 +396,17 @@ export default function ProfilePage({
 							/>
 							{isFollowing ? "Following" : "Follow"}
 						</Button>
-						<Button
-							asChild
-							variant="outline"
-							className="flex-1 border-border bg-transparent text-xs font-medium hover:bg-accent sm:text-sm">
-							<Link href={`/chat/${user.uid}`}>
-								<MessageSquare className="mr-1.5 h-3.5 w-3.5 sm:mr-2 sm:h-4 sm:w-4" />
-								Message
-							</Link>
-						</Button>
+						{connectionStatus === "connected" && (
+							<Button
+								asChild
+								variant="outline"
+								className="flex-1 border-border bg-transparent text-xs font-medium hover:bg-accent sm:text-sm">
+								<Link href={`/c/${user.username}`}>
+									<MessageSquare className="mr-1.5 h-3.5 w-3.5 sm:mr-2 sm:h-4 sm:w-4" />
+									Message
+								</Link>
+							</Button>
+						)}
 					</div>
 				)}
 

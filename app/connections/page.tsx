@@ -16,17 +16,10 @@ import {
 import { UserTile } from "@/components/types/user";
 import { auth, db } from "@/lib/firebase";
 import {
-	collection,
-	query,
-	where,
-	limit,
-	getDocs,
 	doc,
 	getDoc,
-	updateDoc,
 	arrayUnion,
 	arrayRemove,
-	setDoc,
 	writeBatch,
 	increment,
 } from "firebase/firestore";
@@ -40,14 +33,6 @@ interface User {
 	role?: string;
 	skills?: string[];
 	matchPercentage?: number;
-}
-
-interface ConnectionRequest {
-	id: string;
-	name: string;
-	username: string;
-	avatar: string;
-	verified: boolean;
 }
 
 type ConnectionList = "connect" | "requested" | "requests" | "connected";
@@ -73,38 +58,6 @@ export default function Connections() {
 			document.body.style.overflow = "unset";
 		};
 	}, [showRequests]);
-
-	// Mock data for connected users
-	// const connectedUsers: UserTile[] = [
-	// 	{
-	// 		uid: "1",
-	// 		Name: "Avery Kim",
-	// 		username: "averykim",
-	// 		Avatar: "/developer-avatar-male.jpg",
-	// 		verified: true,
-	// 	},
-	// 	{
-	// 		uid: "2",
-	// 		Name: "Devon Singh",
-	// 		username: "devonsingh",
-	// 		Avatar: "/developer-avatar-glasses.png",
-	// 		verified: true,
-	// 	},
-	// 	{
-	// 		uid: "3",
-	// 		Name: "Maya Lopez",
-	// 		username: "mayalopez",
-	// 		Avatar: "/creative-developer-avatar-female.jpg",
-	// 		verified: true,
-	// 	},
-	// 	{
-	// 		uid: "4",
-	// 		Name: "Jordan Chen",
-	// 		username: "jordanchen",
-	// 		Avatar: "/tech-lead-avatar.png",
-	// 		verified: false,
-	// 	},
-	// ];
 
 	// Mock data for recommended connections
 	const recommendedUsers: User[] = [
