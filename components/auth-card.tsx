@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
 	fetchSignInMethodsForEmail,
 	createUserWithEmailAndPassword,
@@ -16,7 +17,15 @@ import {
 } from "firebase/auth";
 import { GithubAuthProvider } from "firebase/auth";
 import { auth } from "@/lib/firebase";
-import { collection, addDoc, query, where, getDocs, doc, getDoc } from "firebase/firestore";
+import {
+	collection,
+	addDoc,
+	query,
+	where,
+	getDocs,
+	doc,
+	getDoc,
+} from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
 type Mode = "login" | "signup";
@@ -35,7 +44,7 @@ export function AuthCard({ initialMode = "login" }: { initialMode?: Mode }) {
 
 			if (methods.includes("github.com")) {
 				alert(
-					"This account was created using GitHub. Please sign in with GitHub."
+					"This account was created using GitHub. Please sign in with GitHub.",
 				);
 				return;
 			}
@@ -47,14 +56,14 @@ export function AuthCard({ initialMode = "login" }: { initialMode?: Mode }) {
 
 			if (methods.includes("google.com")) {
 				alert(
-					"This account was created using Google. Please sign in with Google."
+					"This account was created using Google. Please sign in with Google.",
 				);
 				return;
 			}
 			const userCredential = await createUserWithEmailAndPassword(
 				auth,
 				email,
-				password
+				password,
 			);
 			console.log("firebaseUid:", userCredential.user.uid);
 
@@ -111,7 +120,7 @@ export function AuthCard({ initialMode = "login" }: { initialMode?: Mode }) {
 				const token = credential?.accessToken;
 				const firebaseUid = result.user.uid;
 
-        const docRef = doc(db, "users", firebaseUid);
+				const docRef = doc(db, "users", firebaseUid);
 				const docSnap = await getDoc(docRef);
 
 				if (!docSnap.exists()) {
@@ -297,17 +306,17 @@ export function AuthCard({ initialMode = "login" }: { initialMode?: Mode }) {
 
 					<p className="pt-1 text-center text-xs text-muted-foreground">
 						By continuing, you agree to our{" "}
-						<a
-							href="#"
+						<Link
+							href="/legal/ToS"
 							className="underline underline-offset-4 hover:text-foreground">
 							Terms of Service
-						</a>{" "}
+						</Link>{" "}
 						&{" "}
-						<a
-							href="#"
+						<Link
+							href="/legal/Privacy-Policy"
 							className="underline underline-offset-4 hover:text-foreground">
 							Privacy Policy
-						</a>
+						</Link>
 						.
 					</p>
 				</CardContent>
