@@ -155,7 +155,7 @@ export default function ChatPage({ targetUser, messages, isOwner }: ChatProps) {
 	};
 
 	return (
-		<div className="h-screen bg-background flex flex-col overflow-hidden">
+		<div className="fixed inset-0 bg-background flex flex-col overflow-hidden">
 			{/* Header */}
 			<div className="sticky top-0 bg-background border-b border-muted z-10">
 				<div className="max-w-2xl mx-auto w-full px-4 py-4 flex items-center justify-between">
