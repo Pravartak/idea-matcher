@@ -59,21 +59,42 @@ export const toggleConnectionStatus = async (
 		const batch = writeBatch(db);
 
 		if (currentStatus === "requested") {
-			const confirm = window.confirm("Are you sure you want to remove request?");
+			const confirm = window.confirm(
+				"Are you sure you want to remove request?",
+			);
 			if (!confirm) return currentStatus;
-			
+
 			// Remove from viewer's SentRequests and target's Requests
-			batch.set(viewerRef, { SentRequests: arrayRemove(targetUid) }, { merge: true });
-			batch.set(targetRef, { Requests: arrayRemove(viewerUid) }, { merge: true });
-			
+			batch.set(
+				viewerRef,
+				{ SentRequests: arrayRemove(targetUid) },
+				{ merge: true },
+			);
+			batch.set(
+				targetRef,
+				{ Requests: arrayRemove(viewerUid) },
+				{ merge: true },
+			);
+
 			await batch.commit();
 			return "notConnected";
 		}
 		if (currentStatus === "incomingRequest") {
 			// Accept request
-			batch.set(viewerRef, { Connected: arrayUnion(targetUid), Requests: arrayRemove(targetUid) }, { merge: true });
-			batch.set(targetRef, { Connected: arrayUnion(viewerUid), SentRequests: arrayRemove(viewerUid) }, { merge: true });
-			
+			batch.set(
+				viewerRef,
+				{ Connected: arrayUnion(targetUid), Requests: arrayRemove(targetUid) },
+				{ merge: true },
+			);
+			batch.set(
+				targetRef,
+				{
+					Connected: arrayUnion(viewerUid),
+					SentRequests: arrayRemove(viewerUid),
+				},
+				{ merge: true },
+			);
+
 			batch.update(viewerUserRef, { Connections: increment(1) });
 			batch.update(targetUserRef, { Connections: increment(1) });
 
@@ -83,18 +104,34 @@ export const toggleConnectionStatus = async (
 		if (currentStatus === "connected") {
 			const confirm = window.confirm("Are you sure you want to disconnect?");
 			if (!confirm) return currentStatus;
-			
+
 			batch.update(targetUserRef, { Connections: increment(-1) });
 			batch.update(viewerUserRef, { Connections: increment(-1) });
-			
-			batch.set(viewerRef, { Connected: arrayRemove(targetUid) }, { merge: true });
-			batch.set(targetRef, { Connected: arrayRemove(viewerUid) }, { merge: true });
-			
+
+			batch.set(
+				viewerRef,
+				{ Connected: arrayRemove(targetUid) },
+				{ merge: true },
+			);
+			batch.set(
+				targetRef,
+				{ Connected: arrayRemove(viewerUid) },
+				{ merge: true },
+			);
+
 			await batch.commit();
 			return "notConnected";
 		}
-		if (currentStatus === "notConnected" || currentStatus === "not-requested" || !currentStatus) {
-			batch.set(viewerRef, { SentRequests: arrayUnion(targetUid) }, { merge: true });
+		if (
+			currentStatus === "notConnected" ||
+			currentStatus === "not-requested" ||
+			!currentStatus
+		) {
+			batch.set(
+				viewerRef,
+				{ SentRequests: arrayUnion(targetUid) },
+				{ merge: true },
+			);
 			batch.set(
 				targetRef,
 				{ Requests: arrayUnion(viewerUid) },
@@ -246,15 +283,19 @@ export default function ProfilePage({
 					Following: increment(1),
 				});
 
-				await fetch("/api/send-notification", {
-					method: "POST",
-					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify({
-						receiverUid: user.uid,
-						title: "New Follower",
-						body: `${(await viewer).data()?.Name || "Someone"} started following you!`,
-					})
-				})
+				try {
+					await fetch("/api/send-notification", {
+						method: "POST",
+						headers: { "Content-Type": "application/json" },
+						body: JSON.stringify({
+							receiverUid: user.uid,
+							title: "New Follower",
+							body: `${(await viewer).data()?.Name || "Someone"} started following you!`,
+						}),
+					});
+				} catch (error) {
+					console.error("Error sending notification:", error);
+				}
 			}
 
 			await batch.commit();
@@ -366,19 +407,19 @@ export default function ProfilePage({
 								connectionStatus === "connected"
 									? "bg-accent text-accent-foreground hover:bg-accent/80"
 									: connectionStatus === "requested"
-									? "bg-secondary text-secondary-foreground hover:bg-secondary/80" 
-									: connectionStatus === "incomingRequest"
-									? "bg-green-600 text-white hover:bg-green-700"
-									: "bg-primary text-primary-foreground hover:bg-primary/90"
+										? "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+										: connectionStatus === "incomingRequest"
+											? "bg-green-600 text-white hover:bg-green-700"
+											: "bg-primary text-primary-foreground hover:bg-primary/90"
 							}`}>
 							<UserPlus className="mr-1.5 h-3.5 w-3.5 sm:mr-2 sm:h-4 sm:w-4" />
 							{connectionStatus === "connected"
 								? "Connected"
 								: connectionStatus === "incomingRequest"
-								? "Accept Request"
-								: connectionStatus === "requested"
-								? "Requested"
-								: "Connect"}
+									? "Accept Request"
+									: connectionStatus === "requested"
+										? "Requested"
+										: "Connect"}
 						</Button>
 						<Button
 							onClick={handleFollow}
