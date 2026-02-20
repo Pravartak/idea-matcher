@@ -8,6 +8,7 @@ import "./globals.css";
 import { JetBrains_Mono } from "next/font/google";
 import { Suspense } from "react";
 import { AdSense } from "@/components/AdSense";
+import NotificationProvider from "@/components/NotificationProvider";
 
 const jetBrains = JetBrains_Mono({
 	subsets: ["latin"],
@@ -44,6 +45,7 @@ export default function RootLayout({
 			lang="en"
 			className={`${jetBrains.variable} ${GeistSans.variable} ${GeistMono.variable} dark antialiased`}>
 			<body className="font-sans">
+				<NotificationProvider />
 				<AdSense pId="ca-pub-6553407246371441" />
 				<Suspense fallback={<div>Loading...</div>}>{children}</Suspense>
 				<Analytics />
