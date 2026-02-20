@@ -15,14 +15,15 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "User not found" }, { status: 404 });
         }
 
-        const fcmToken = userDoc.data()?.fcmToken;
+        const userData = userDoc.data();
+        const fcmTokens = userData?.fcmToken;
 
-        if (!fcmToken) {
+        if (!fcmTokens || !Array.isArray(fcmTokens) || fcmTokens.length === 0) {
             return NextResponse.json({ error: "User does not have an FCM token" }, { status: 400 });
         }
 
-        await getMessaging().send({
-            token: fcmToken,
+        await getMessaging().sendEachForMulticast({
+            tokens: fcmTokens,
             notification: {
                 title,
                 body,
