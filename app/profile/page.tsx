@@ -2,12 +2,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { getMessaging, getToken } from "firebase/messaging";
 import {
+	arrayUnion,
 	collection,
 	doc,
 	getDoc,
 	getDocs,
 	query,
+	updateDoc,
 	where,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -22,6 +25,28 @@ export default function MyProfilePage() {
 	const [postsData, setPostsData] = useState<any[]>([]);
 	const router = useRouter();
 
+	const requestNotificationPermission = async (uid: string) => {
+		if (!("Notification" in window)) return;
+		try {
+			const permission = await Notification.requestPermission();
+			if (permission === "granted") {
+				const messaging = getMessaging();
+				const token = await getToken(messaging, {
+					vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY,
+				})
+				console.log("Notification permission granted. FCM Token: ", token);
+
+				await updateDoc(doc(db, "users", uid), {
+					fcmToken: arrayUnion(token),
+				});
+			} else {
+				console.log("Notification permission denied.");
+			}
+		} catch (error) {
+			console.error("Error requesting notification permission:", error);
+		}
+	};
+
 	useEffect(() => {
 		const auth = getAuth();
 
@@ -30,6 +55,8 @@ export default function MyProfilePage() {
 				router.push("/signup");
 				return;
 			}
+
+			requestNotificationPermission(user.uid);
 
 			const docRef = doc(db, "users", user.uid);
 			const docSnap = await getDoc(docRef);

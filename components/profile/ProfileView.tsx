@@ -15,11 +15,6 @@ import {
 	Heart,
 	MessageSquare,
 	UserPlus,
-	MoreHorizontal,
-	MessageCircle,
-	Bookmark,
-	ChevronRight,
-	ChevronLeft,
 } from "lucide-react";
 // import ProfileActions from "./ProfileActions";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -28,15 +23,10 @@ import { useState, useEffect } from "react";
 import { User } from "../types/user";
 import { auth, db } from "@/lib/firebase";
 import {
-	updateDoc,
 	doc,
-	setDoc,
 	deleteField,
 	increment,
 	getDoc,
-	query,
-	collection,
-	where,
 	arrayRemove,
 	arrayUnion,
 	writeBatch,
@@ -149,8 +139,6 @@ export default function ProfilePage({
 	const [connectionStatus, setConnectionStatus] = useState<string | null>(null);
 	const [isFollowing, setIsFollowing] = useState(false);
 	const [isSharing, setIsSharing] = useState(false);
-	// const [isLiked, setIsLiked] = useState(false);
-	// const [isBookmarked, setIsBookmarked] = useState(false);
 	const [currentPosts, setCurrentPosts] = useState(posts);
 
 	useEffect(() => {
@@ -237,6 +225,7 @@ export default function ProfilePage({
 		if (!user.uid) return;
 		const viewerUid = auth.currentUser?.uid;
 		if (!viewerUid) return;
+		const viewer = getDoc(doc(db, "users", viewerUid));
 
 		const targetUid = doc(db, "users", user.uid);
 		const followersRef = doc(db, "followers", user.uid);
@@ -256,6 +245,16 @@ export default function ProfilePage({
 				batch.update(doc(db, "users", viewerUid), {
 					Following: increment(1),
 				});
+
+				await fetch("/api/send-notification", {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({
+						receiverUid: user.uid,
+						title: "New Follower",
+						body: `${(await viewer).data()?.Name || "Someone"} started following you!`,
+					})
+				})
 			}
 
 			await batch.commit();
