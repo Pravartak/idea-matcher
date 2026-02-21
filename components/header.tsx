@@ -32,7 +32,7 @@ export function Header() {
           Connections
         </Link>
         <Link
-          href="/notifications"
+          href="#"
           className="font-mono text-sm text-muted-foreground hover:text-foreground transition-colors relative"
         >
           Notifications

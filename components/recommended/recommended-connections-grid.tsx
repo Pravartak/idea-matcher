@@ -1,23 +1,36 @@
-"use client"
+"use client";
 
-import { UserCard } from "./user-card"
-import type { User } from "@/app/connections/ConnectionsClient"
+import { UserCard } from "./user-card";
 
 type Props = {
-  users: User[]
-  onConnect: (userId: string) => void
-}
+	users: any[];
+	onConnect: (userId: string) => void;
+};
 
 export function RecommendedConnectionsGrid({ users, onConnect }: Props) {
-  if (!users.length) {
-    return <div className="text-sm text-muted-foreground">No users found. Try adjusting your search or filter.</div>
-  }
+	if (!users || !users.length) {
+		return (
+			<div className="text-sm text-muted-foreground">
+				No users found. Try adjusting your search or filter.
+			</div>
+		);
+	}
 
-  return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {users.map((u) => (
-        <UserCard key={u.id} user={u} onConnect={onConnect} />
-      ))}
-    </div>
-  )
+	return (
+		<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+			{users.map((u) => (
+				<UserCard
+					key={u.uid || u.id}
+					user={{
+						id: u.uid || u.id,
+						name: u.Name || u.name,
+						avatar: u.Avatar || u.avatar,
+						bio: u.Bio || u.bio,
+						skills: u.interests || u.skills || [],
+					} as any}
+					onConnect={onConnect}
+				/>
+			))}
+		</div>
+	);
 }

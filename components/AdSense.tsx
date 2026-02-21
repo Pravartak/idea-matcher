@@ -31,9 +31,6 @@ export function AdSense({ pId }: AdSenseProps) {
     // Exclude pages with dummy content to avoid "Valuable Inventory" violations
     "/projects",
     "/hackathon-teams",
-    "/connections",
-    "/recommended-connections",
-    "/search",
   ];
 
   const isExcluded = pathname && excludedPaths.some((path) => {

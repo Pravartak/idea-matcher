@@ -37,7 +37,7 @@ export function Navbar() {
 						Hackathon Teams
 					</Link>
 					<Link
-						href="/recommended-connections"
+						href="/connections"
 						className="text-sm text-muted-foreground transition-colors hover:text-foreground">
 						Connections
 					</Link>
