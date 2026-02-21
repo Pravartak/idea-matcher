@@ -293,6 +293,7 @@ export default function ProfilePage({
 							body: `${(await viewer).data()?.Name || "Someone"} started following you!`,
 						}),
 					});
+					console.log("VAPID_KEY:", process.env.NEXT_PUBLIC_VAPID_KEY);
 				} catch (error) {
 					console.error("Error sending notification:", error);
 				}

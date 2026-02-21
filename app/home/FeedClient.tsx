@@ -110,6 +110,7 @@ export default function FeedClient({ initialPosts }: { initialPosts: Post[] }) {
 				const token = await getToken(messaging, {
 					vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY,
 				});
+				console.log("VAPID_KEY:", process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY);
 				console.log("Notification permission granted. FCM Token: ", token);
 
 				await updateDoc(doc(db, "users", uid), {
