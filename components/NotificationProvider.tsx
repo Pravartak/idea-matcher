@@ -4,44 +4,47 @@ import { useEffect } from "react";
 import { getMessaging, getToken, isSupported } from "firebase/messaging";
 import { app, db } from "@/lib/firebase";
 import { arrayUnion, doc, updateDoc } from "firebase/firestore";
-import { getAuth } from "firebase/auth";
-import { publicEnv } from "@/lib/publicEnv";
+import { getAuth, onAuthStateChanged } from "firebase/auth";
 
 export default function NotificationProvider() {
 	useEffect(() => {
-		async function initNotifications() {
-			if (!(await isSupported())) return;
-			if (!("serviceWorker" in navigator)) return;
-			await navigator.serviceWorker.register("/firebase-messaging-sw.js");
+		const auth = getAuth(app);
 
-			try {
-				const permission = await Notification.requestPermission();
-				if (permission === "granted") {
+		const unsubscribe = onAuthStateChanged(auth, async (user) => {
+			if (!user) return;
 
-					const auth = getAuth();
-					const user = auth.currentUser;
-					if (!user) return;
-					const uid = user.uid;
+			const initNotifications = async (uid: string) => {
+				if (!(await isSupported())) return;
+				if (!("serviceWorker" in navigator)) return;
+				const registration = await navigator.serviceWorker.register(
+					"/firebase-messaging-sw.js",
+				);
 
-					const messaging = getMessaging(app);
-					const token = await getToken(messaging, {
-						vapidKey: publicEnv.vapidKey,
-					});
-					console.log("VAPID_KEY:", publicEnv.vapidKey);
-					console.log("Notification permission granted. FCM Token: ", token);
+				try {
+					const permission = await Notification.requestPermission();
+					if (permission === "granted") {
+						const messaging = getMessaging(app);
+						const token = await getToken(messaging, {
+							vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY,
+							serviceWorkerRegistration: registration,
+						});
+						console.log("Notification permission granted. FCM Token: ", token);
 
-					await updateDoc(doc(db, "users", uid), {
-						fcmToken: arrayUnion(token),
-					});
-				} else {
-					console.log("Notification permission denied.");
+						await updateDoc(doc(db, "users", uid), {
+							fcmToken: arrayUnion(token),
+						});
+					} else {
+						console.log("Notification permission denied.");
+					}
+				} catch (error) {
+					console.error("Error requesting notification permission:", error);
 				}
-			} catch (error) {
-				console.error("Error requesting notification permission:", error);
-			}
-		}
+			};
 
-		initNotifications();
+			initNotifications(user.uid);
+		});
+
+		return () => unsubscribe();
 	}, []);
 
 	return null;

@@ -262,7 +262,6 @@ export default function ProfilePage({
 		if (!user.uid) return;
 		const viewerUid = auth.currentUser?.uid;
 		if (!viewerUid) return;
-		const viewer = getDoc(doc(db, "users", viewerUid));
 
 		const targetUid = doc(db, "users", user.uid);
 		const followersRef = doc(db, "followers", user.uid);
@@ -270,6 +269,8 @@ export default function ProfilePage({
 		if (viewerUid === user.uid) return alert("You cannot follow yourself!");
 		try {
 			const batch = writeBatch(db);
+			let shouldSendNotification = false;
+
 			if (isFollowing) {
 				batch.update(targetUid, { Followers: increment(-1) });
 				batch.update(followersRef, { [viewerUid]: deleteField() });
@@ -282,25 +283,26 @@ export default function ProfilePage({
 				batch.update(doc(db, "users", viewerUid), {
 					Following: increment(1),
 				});
-
-				try {
-					await fetch("/api/send-notification", {
-						method: "POST",
-						headers: { "Content-Type": "application/json" },
-						body: JSON.stringify({
-							receiverUid: user.uid,
-							title: "New Follower",
-							body: `${(await viewer).data()?.Name || "Someone"} started following you!`,
-						}),
-					});
-					console.log("VAPID_KEY:", process.env.NEXT_PUBLIC_VAPID_KEY);
-				} catch (error) {
-					console.error("Error sending notification:", error);
-				}
+				shouldSendNotification = true;
 			}
 
 			await batch.commit();
 			setIsFollowing(!isFollowing);
+
+			if (shouldSendNotification) {
+				const viewerSnap = await getDoc(doc(db, "users", viewerUid));
+				fetch("/api/send-notification", {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({
+						receiverUid: user.uid,
+						title: "New Follower",
+						body: `${viewerSnap.data()?.Name || "Someone"} started following you!`,
+					}),
+				}).catch((error) => {
+					console.error("Error sending notification:", error);
+				});
+			}
 		} catch (error) {
 			console.error("Error updating follow status:", error);
 			alert("Failed to update follow status. Missing permissions.");
