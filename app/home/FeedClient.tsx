@@ -19,7 +19,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { createPortal } from "react-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { db } from "@/lib/firebase";
+import { app, db } from "@/lib/firebase";
 import {
 	arrayUnion,
 	collection,
@@ -101,28 +101,28 @@ export default function FeedClient({ initialPosts }: { initialPosts: Post[] }) {
 	const [userData, setUserData] = useState<any | null>(null);
 	const [postsData, setPostsData] = useState<Post[] | null>(initialPosts);
 
-	const requestNotificationPermission = async (uid: string) => {
-		if (!("Notification" in window)) return;
-		try {
-			const permission = await Notification.requestPermission();
-			if (permission === "granted") {
-				const messaging = getMessaging();
-				const token = await getToken(messaging, {
-					vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY,
-				});
-				console.log("VAPID_KEY:", process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY);
-				console.log("Notification permission granted. FCM Token: ", token);
+	// const requestNotificationPermission = async (uid: string) => {
+	// 	if (!("Notification" in window)) return;
+	// 	try {
+	// 		const permission = await Notification.requestPermission();
+	// 		if (permission === "granted") {
+	// 			const messaging = getMessaging(app);
+	// 			const token = await getToken(messaging, {
+	// 				vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY,
+	// 			});
+	// 			console.log("VAPID_KEY:", process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY);
+	// 			console.log("Notification permission granted. FCM Token: ", token);
 
-				await updateDoc(doc(db, "users", uid), {
-					fcmToken: arrayUnion(token),
-				});
-			} else {
-				console.log("Notification permission denied.");
-			}
-		} catch (error) {
-			console.error("Error requesting notification permission:", error);
-		}
-	};
+	// 			await updateDoc(doc(db, "users", uid), {
+	// 				fcmToken: arrayUnion(token),
+	// 			});
+	// 		} else {
+	// 			console.log("Notification permission denied.");
+	// 		}
+	// 	} catch (error) {
+	// 		console.error("Error requesting notification permission:", error);
+	// 	}
+	// };
 
 	useEffect(() => {
 		const auth = getAuth();
@@ -149,7 +149,7 @@ export default function FeedClient({ initialPosts }: { initialPosts: Post[] }) {
 				}
 				return;
 			}
-			requestNotificationPermission(user.uid);
+			// requestNotificationPermission(user.uid);
 
 			const docRef = doc(db, "users", user.uid);
 			const docSnap = await getDoc(docRef);
