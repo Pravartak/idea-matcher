@@ -5,28 +5,19 @@ importScripts(
 	"https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js",
 );
 
-let messaging;
+firebase.initializeApp({
+	apiKey: "AIzaSyBBIiK9E634aaF5lLC21751YbxyOZUXCDY",
+	authDomain: "idea-matcher.firebaseapp.com",
+	projectId: "idea-matcher",
+	messagingSenderId: "1094410865675",
+	appId: "1:1094410865675:web:0c8e7b9a3c8d2f1e4b9c",
+});
 
-self.addEventListener("message", (event) => {
-	if (event.data && event.data.type === "INIT_FIREBASE") {
-		firebase.initializeApp(event.data.config);
-		messaging = firebase.messaging();
+const messaging = firebase.messaging();
 
-		messaging.onBackgroundMessage((payload) => {
-			console.log(
-				"[firebase-messaging-sw.js] Received background message ",
-				payload,
-			);
-			const notificationTitle = payload.notification.title;
-			const notificationOptions = {
-				body: payload.notification.body,
-				icon: "/icon.png", // Replace with your app icon path if you have one
-			};
-
-			self.registration.showNotification(
-				notificationTitle,
-				notificationOptions,
-			);
-		});
-	}
+messaging.onBackgroundMessage((payload) => {
+	self.registration.showNotification(payload.notification.title, {
+		body: payload.notification.body,
+		icon: "/icon.png",
+	});
 });

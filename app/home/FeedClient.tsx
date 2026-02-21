@@ -35,7 +35,7 @@ import {
 import { useRouter } from "next/navigation";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { Post, PostCard } from "@/components/postComponents/PostComponents";
-import { getMessaging, getToken } from "firebase/messaging";
+// import { getMessaging, getToken } from "firebase/messaging";
 
 const navItems = [
 	{ icon: Home, label: "Home", href: "/home", active: true },
