@@ -12,7 +12,7 @@ export async function POST(req: Request) {
 		const userDoc = await db.collection("users").doc(receiverUid).get();
 
 		if (!userDoc.exists) {
-            console.error("User not found with UID:", receiverUid);
+			console.error("User not found with UID:", receiverUid);
 			return NextResponse.json({ error: "User not found" }, { status: 404 });
 		}
 
@@ -36,6 +36,11 @@ export async function POST(req: Request) {
 		console.log("Success:", response.successCount);
 		console.log("Failure:", response.failureCount);
 		console.log(response.responses);
+
+		response.responses.forEach((res, idx) => {
+			console.log("Token:", fcmTokens[idx]);
+			console.log("Result:", res);
+		});
 
 		return NextResponse.json({ success: true });
 	} catch (error) {
