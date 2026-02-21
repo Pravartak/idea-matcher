@@ -12,6 +12,7 @@ export async function POST(req: Request) {
 		const userDoc = await db.collection("users").doc(receiverUid).get();
 
 		if (!userDoc.exists) {
+            console.error("User not found with UID:", receiverUid);
 			return NextResponse.json({ error: "User not found" }, { status: 404 });
 		}
 
