@@ -22,8 +22,14 @@ messaging.onBackgroundMessage((payload) => {
 		payload.notification?.title || payload.data?.title,
 		{
 			body: payload.notification?.body || payload.data?.body,
-			icon: "/icon.png",
+			icon: "/favicon.ico",
+			badge: "/favicon.ico",
 		},
 	);
 	console.log("Notification displayed");
+});
+
+self.addEventListener("notificationclick", function (event) {
+	event.notification.close();
+	event.waitUntil(clients.openWindow("/home"));
 });

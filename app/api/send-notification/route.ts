@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { customInitApp } from "@/lib/firebase-admin";
-import { getFirestore } from "firebase-admin/firestore";
+import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import { getMessaging } from "firebase-admin/messaging";
 
 export async function POST(req: Request) {
@@ -42,12 +42,23 @@ export async function POST(req: Request) {
 			console.log("Result:", res);
 		});
 
-		response.responses.forEach((res, idx) => {
-			if (!res.success) {
-				console.log("Removing bad token:", fcmTokens[idx]);
-				// remove from Firestore here
+		if (response.failureCount > 0) {
+			const tokensToRemove: string[] = [];
+			response.responses.forEach((res, idx) => {
+				if (!res.success) {
+					tokensToRemove.push(fcmTokens[idx]);
+				}
+			});
+
+			if (tokensToRemove.length > 0) {
+				await db
+					.collection("users")
+					.doc(receiverUid)
+					.update({
+						fcmToken: FieldValue.arrayRemove(...tokensToRemove),
+					});
 			}
-		});
+		}
 
 		return NextResponse.json({ success: true });
 	} catch (error) {

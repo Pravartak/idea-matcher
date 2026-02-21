@@ -8,7 +8,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { auth } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
-import NotificationProvider from "@/components/NotificationProvider";
+// import NotificationProvider from "@/components/NotificationProvider";
 
 export default function Page() {
 	const router = useRouter();
@@ -23,7 +23,7 @@ export default function Page() {
 	}, [router]);
 	return (
 		<>
-			<NotificationProvider />
+			{/* <NotificationProvider /> */}
 			<Navbar />
 			<main>
 				<Hero />
