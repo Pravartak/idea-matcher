@@ -42,6 +42,13 @@ export async function POST(req: Request) {
 			console.log("Result:", res);
 		});
 
+		response.responses.forEach((res, idx) => {
+			if (!res.success) {
+				console.log("Removing bad token:", fcmTokens[idx]);
+				// remove from Firestore here
+			}
+		});
+
 		return NextResponse.json({ success: true });
 	} catch (error) {
 		console.error("Error sending notification:", error);

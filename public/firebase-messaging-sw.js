@@ -25,4 +25,5 @@ messaging.onBackgroundMessage((payload) => {
 			icon: "/icon.png",
 		},
 	);
+	console.log("Notification displayed");
 });
