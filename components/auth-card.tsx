@@ -18,11 +18,6 @@ import {
 import { GithubAuthProvider } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import {
-	collection,
-	addDoc,
-	query,
-	where,
-	getDocs,
 	doc,
 	getDoc,
 } from "firebase/firestore";
