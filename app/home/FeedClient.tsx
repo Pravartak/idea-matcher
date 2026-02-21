@@ -49,7 +49,7 @@ const secondaryNavItems = [
 	{ icon: FolderKanban, label: "Projects", href: "/projects" },
 	{ icon: Users, label: "Hackathon Teams", href: "/hackathon-teams" },
 	{ icon: UserPlus, label: "Connections", href: "/connections" },
-	{ icon: Bell, label: "Notifications", href: "/notifications", badge: true },
+	{ icon: Bell, label: "Notifications", href: "#", badge: true },
 ];
 
 function GuestLoginDialog({
