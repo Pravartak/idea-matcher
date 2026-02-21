@@ -21,6 +21,7 @@ import { createPortal } from "react-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { db } from "@/lib/firebase";
 import {
+	arrayUnion,
 	collection,
 	doc,
 	getDoc,
@@ -28,11 +29,13 @@ import {
 	limit,
 	orderBy,
 	query,
+	updateDoc,
 	where,
 } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { Post, PostCard } from "@/components/postComponents/PostComponents";
+import { getMessaging, getToken } from "firebase/messaging";
 
 const navItems = [
 	{ icon: Home, label: "Home", href: "/home", active: true },
@@ -66,7 +69,9 @@ function GuestLoginDialog({
 				className="bg-background border border-border rounded-xl p-6 max-w-sm w-full space-y-4 shadow-xl animate-in zoom-in-95 duration-200"
 				onClick={(e) => e.stopPropagation()}>
 				<div className="text-center space-y-2">
-					<h3 className="text-lg font-semibold font-mono">Join the conversation</h3>
+					<h3 className="text-lg font-semibold font-mono">
+						Join the conversation
+					</h3>
 					<p className="text-muted-foreground text-sm font-mono">
 						Sign in to like, comment, and connect with the community.
 					</p>
@@ -96,6 +101,28 @@ export default function FeedClient({ initialPosts }: { initialPosts: Post[] }) {
 	const [userData, setUserData] = useState<any | null>(null);
 	const [postsData, setPostsData] = useState<Post[] | null>(initialPosts);
 
+	const requestNotificationPermission = async (uid: string) => {
+		if (!("Notification" in window)) return;
+		try {
+			const permission = await Notification.requestPermission();
+			if (permission === "granted") {
+				const messaging = getMessaging();
+				const token = await getToken(messaging, {
+					vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY,
+				});
+				console.log("Notification permission granted. FCM Token: ", token);
+
+				await updateDoc(doc(db, "users", uid), {
+					fcmToken: arrayUnion(token),
+				});
+			} else {
+				console.log("Notification permission denied.");
+			}
+		} catch (error) {
+			console.error("Error requesting notification permission:", error);
+		}
+	};
+
 	useEffect(() => {
 		const auth = getAuth();
 
@@ -121,6 +148,7 @@ export default function FeedClient({ initialPosts }: { initialPosts: Post[] }) {
 				}
 				return;
 			}
+			requestNotificationPermission(user.uid);
 
 			const docRef = doc(db, "users", user.uid);
 			const docSnap = await getDoc(docRef);
@@ -376,20 +404,40 @@ export default function FeedClient({ initialPosts }: { initialPosts: Post[] }) {
 									</p>
 									<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 										<div className="space-y-1">
-											<h3 className="font-medium text-foreground">Find Teammates</h3>
-											<p className="text-sm text-muted-foreground">Connect with skilled developers for your next hackathon or project.</p>
+											<h3 className="font-medium text-foreground">
+												Find Teammates
+											</h3>
+											<p className="text-sm text-muted-foreground">
+												Connect with skilled developers for your next hackathon
+												or project.
+											</p>
 										</div>
 										<div className="space-y-1">
-											<h3 className="font-medium text-foreground">Share Ideas</h3>
-											<p className="text-sm text-muted-foreground">Get feedback on your startup ideas and find early adopters.</p>
+											<h3 className="font-medium text-foreground">
+												Share Ideas
+											</h3>
+											<p className="text-sm text-muted-foreground">
+												Get feedback on your startup ideas and find early
+												adopters.
+											</p>
 										</div>
 										<div className="space-y-1">
-											<h3 className="font-medium text-foreground">Showcase Projects</h3>
-											<p className="text-sm text-muted-foreground">Display your portfolio and get discovered by the community.</p>
+											<h3 className="font-medium text-foreground">
+												Showcase Projects
+											</h3>
+											<p className="text-sm text-muted-foreground">
+												Display your portfolio and get discovered by the
+												community.
+											</p>
 										</div>
 										<div className="space-y-1">
-											<h3 className="font-medium text-foreground">Join Discussions</h3>
-											<p className="text-sm text-muted-foreground">Participate in technical discussions and share your knowledge.</p>
+											<h3 className="font-medium text-foreground">
+												Join Discussions
+											</h3>
+											<p className="text-sm text-muted-foreground">
+												Participate in technical discussions and share your
+												knowledge.
+											</p>
 										</div>
 									</div>
 								</div>
