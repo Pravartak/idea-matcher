@@ -22,8 +22,9 @@ messaging.onBackgroundMessage((payload) => {
 		payload.notification?.title || payload.data?.title,
 		{
 			body: payload.notification?.body || payload.data?.body,
-			icon: "/favicon.ico",
-			badge: "/favicon.ico",
+			icon: payload.notification?.icon || "/favicon.ico",
+			badge: payload.notification?.badge || "/favicon.ico",
+			data: payload.data,
 		},
 	);
 	console.log("Notification displayed");
@@ -31,5 +32,20 @@ messaging.onBackgroundMessage((payload) => {
 
 self.addEventListener("notificationclick", function (event) {
 	event.notification.close();
-	event.waitUntil(clients.openWindow("/home"));
+
+	const targetUrl = event.notification.data?.url || "/";
+	event.waitUntil(
+		clients
+			.matchAll({ type: "window", includeUncontrolled: true })
+			.then((clientList) => {
+				for (const client of clientList) {
+					if (client.url.includes(targetUrl) && "focus" in client) {
+						return client.focus();
+					}
+				}
+				if (clients.openWindow) {
+					return clients.openWindow(targetUrl);
+				}
+			}),
+	);
 });

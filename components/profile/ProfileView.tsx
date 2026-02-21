@@ -49,6 +49,8 @@ export const toggleConnectionStatus = async (
 	const targetRef = doc(db, "Connections", targetUid);
 	const viewerUserRef = doc(db, "users", viewerUid);
 	const targetUserRef = doc(db, "users", targetUid);
+	const viewerSnap = await getDoc(viewerUserRef);
+	const targetSnap = await getDoc(targetUserRef);
 
 	if (viewerUid === targetUid) {
 		alert("You cannot connect with yourself!");
@@ -99,6 +101,24 @@ export const toggleConnectionStatus = async (
 			batch.update(targetUserRef, { Connections: increment(1) });
 
 			await batch.commit();
+
+			fetch("/api/send-notification", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({
+					receiverUid: targetUid,
+					title: "Request Accepted!",
+					body: `${viewerSnap.data()?.Name || "Someone"} accepted your connection request!`,
+					icon: viewerSnap.data()?.Avatar || "/placeholder.svg",
+					data: {
+						type: "request_accepted",
+						url: `/u/${viewerSnap.data()?.username || viewerUid}`,
+					},
+				}),
+			}).catch((error) => {
+				console.error("Error sending notification:", error);
+			});
+
 			return "connected";
 		}
 		if (currentStatus === "connected") {
@@ -138,6 +158,24 @@ export const toggleConnectionStatus = async (
 				{ merge: true },
 			);
 			await batch.commit();
+
+			fetch("/api/send-notification", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({
+					receiverUid: targetUid,
+					title: "New Connection Request",
+					body: `${viewerSnap.data()?.Name || "Someone"} sent you a new connection request!`,
+					icon: viewerSnap.data()?.Avatar || "/placeholder.svg",
+					data: {
+						type: "new_request",
+						url: `/u/${viewerSnap.data()?.username || viewerUid}`,
+					},
+				}),
+			}).catch((error) => {
+				console.error("Error sending notification:", error);
+			});
+
 			return "requested";
 		}
 		return currentStatus;
@@ -298,6 +336,11 @@ export default function ProfilePage({
 						receiverUid: user.uid,
 						title: "New Follower",
 						body: `${viewerSnap.data()?.Name || "Someone"} started following you!`,
+						icon: viewerSnap.data()?.Avatar || "/placeholder.svg",
+						data: {
+							type: "new_follower",
+							url: `/u/${viewerSnap.data()?.username || viewerUid}`,
+						},
 					}),
 				}).catch((error) => {
 					console.error("Error sending notification:", error);

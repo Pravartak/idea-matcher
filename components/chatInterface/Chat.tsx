@@ -18,6 +18,7 @@ import {
 	onSnapshot,
 	query,
 	orderBy,
+	getDoc,
 } from "firebase/firestore";
 import { ReceiverMsgBox, SenderMsgBox } from "../chatComponents/ChatComponents";
 
@@ -108,6 +109,12 @@ export default function ChatPage({ targetUser, messages, isOwner }: ChatProps) {
 		if (messageInput.trim() && conversationId && targetUser?.uid) {
 			const currentUser = auth.currentUser;
 			if (!currentUser) return;
+			const viewerSnap = await getDoc(doc(db, "users", currentUser.uid));
+
+			if (!viewerSnap.exists()) {
+				console.error("Viewer data not available");
+				return;
+			}
 
 			try {
 				const conversationRef = doc(db, "Conversations", conversationId);
@@ -139,6 +146,26 @@ export default function ChatPage({ targetUser, messages, isOwner }: ChatProps) {
 						type: "text",
 					},
 				);
+
+				fetch("/api/send-notification", {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({
+						receiverUid: targetUser.uid,
+						title:
+							messageInput.length > 20
+								? `${messageInput.slice(0, 20)}...`
+								: "New Message!",
+						body: `${currentUser?.displayName || "Someone"} sent you a message!`,
+						icon: currentUser?.photoURL || "/placeholder.svg",
+						data: {
+							type: "new_message",
+							url: `/c/${viewerSnap.data().username}`, // Link to the chat or user profile
+						},
+					}),
+				}).catch((error) => {
+					console.error("Error sending notification:", error);
+				});
 			} catch (e) {
 				console.error("Error sending message: ", e);
 			}

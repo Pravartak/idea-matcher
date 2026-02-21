@@ -398,6 +398,14 @@ export const PostCard = ({
 			return;
 		}
 
+		const viewerSnap = await getDoc(doc(db, "users", viewerUid));
+		const viewer = viewerSnap.data();
+
+		if (!viewer) {
+			alert("Viewer data not available");
+			return;
+		}
+
 		const postRef = doc(db, "Posts", post.id);
 		const likeRef = doc(db, "Posts", post.id, "likes", viewerUid);
 
@@ -411,6 +419,23 @@ export const PostCard = ({
 			setIsLiked(true);
 			await updateDoc(postRef, { likesCount: increment(1) });
 			await setDoc(likeRef, { [viewerUid]: true });
+
+			fetch("/api/send-notification", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({
+					receiverUid: post.authorUid,
+					title: "New Like!",
+					body: `${viewer?.Name || "Someone"} liked your post!`,
+					icon: viewer?.Avatar || "/placeholder.svg",
+					data: {
+						type: "new_like",
+						url: `/post/${post.id}`,
+					},
+				}),
+			}).catch((error) => {
+				console.error("Error sending notification:", error);
+			});
 		}
 	};
 
