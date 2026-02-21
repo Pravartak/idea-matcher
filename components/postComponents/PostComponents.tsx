@@ -506,7 +506,7 @@ export const PostCard = ({
 						<div className="flex items-center gap-2 text-sm text-muted-foreground font-mono">
 							<span>{post.author.username}</span>
 							<span>·</span>
-							<span>
+							<span suppressHydrationWarning>
 								{post.createdAt instanceof Date
 									? post.createdAt.toLocaleString()
 									: new Date(post.createdAt).toLocaleString()}
@@ -1037,13 +1037,15 @@ function CommentsSection({
 											{comment.author?.username?.replace("@", "") ||
 												"anonymous"}{" "}
 											·{" "}
-											{comment.createdAt?.seconds
-												? new Date(
-														comment.createdAt.seconds * 1000,
-													).toLocaleString()
-												: comment.createdAt instanceof Date
-													? comment.createdAt.toLocaleString()
-													: "Just now"}
+											<span suppressHydrationWarning>
+												{comment.createdAt?.seconds
+													? new Date(
+															comment.createdAt.seconds * 1000,
+														).toLocaleString()
+													: comment.createdAt instanceof Date
+														? comment.createdAt.toLocaleString()
+														: "Just now"}
+											</span>
 										</p>
 									</div>
 								</div>
