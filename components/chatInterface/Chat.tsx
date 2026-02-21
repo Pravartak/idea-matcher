@@ -155,7 +155,7 @@ export default function ChatPage({ targetUser, messages, isOwner }: ChatProps) {
 						title:
 							messageInput.length > 20
 								? `${messageInput.slice(0, 20)}...`
-								: "New Message!",
+								: messageInput,
 						body: `${currentUser?.displayName || "Someone"} sent you a message!`,
 						icon: currentUser?.photoURL || "/placeholder.svg",
 						data: {

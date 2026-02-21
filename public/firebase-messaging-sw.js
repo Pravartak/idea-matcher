@@ -1,8 +1,8 @@
 importScripts(
-	"https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js",
+	"https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js",
 );
 importScripts(
-	"https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js",
+	"https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js",
 );
 
 firebase.initializeApp({
@@ -18,22 +18,19 @@ const messaging = firebase.messaging();
 messaging.onBackgroundMessage((payload) => {
 	console.log("Background message:", payload);
 
-	self.registration.showNotification(
-		payload.notification?.title || payload.data?.title,
-		{
-			body: payload.notification?.body || payload.data?.body,
-			icon: payload.notification?.icon || "/favicon.ico",
-			badge: payload.notification?.badge || "/favicon.ico",
-			data: payload.data,
-		},
-	);
-	console.log("Notification displayed");
+	self.registration.showNotification(payload.notification.title, {
+		body: payload.notification.body,
+		badge: "/icon.png",
+		icon: payload.notification.icon || "/icon.png",
+		data: payload.data, // 🔥 VERY IMPORTANT
+	});
 });
 
 self.addEventListener("notificationclick", function (event) {
 	event.notification.close();
 
 	const targetUrl = event.notification.data?.url || "/";
+
 	event.waitUntil(
 		clients
 			.matchAll({ type: "window", includeUncontrolled: true })
@@ -43,9 +40,7 @@ self.addEventListener("notificationclick", function (event) {
 						return client.focus();
 					}
 				}
-				if (clients.openWindow) {
-					return clients.openWindow(targetUrl);
-				}
+				return clients.openWindow(targetUrl);
 			}),
 	);
 });
