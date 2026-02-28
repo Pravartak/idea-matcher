@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import Script from "next/script";
+import { useEffect } from "react";
 
 type AdSenseProps = {
   pId: string;
@@ -38,16 +38,16 @@ export function AdSense({ pId }: AdSenseProps) {
     return path === "/" ? pathname === "/" : pathname === path || pathname.startsWith(`${path}/`);
   });
 
-  if (isExcluded) {
-    return null;
-  }
+  useEffect(() => {
+    if (isExcluded) return;
+    if (document.querySelector(`script[src*="adsbygoogle.js"]`)) return;
 
-  return (
-    <Script
-      async
-      src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${pId}`}
-      crossOrigin="anonymous"
-      strategy="afterInteractive"
-    />
-  );
+    const script = document.createElement("script");
+    script.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${pId}`;
+    script.async = true;
+    script.crossOrigin = "anonymous";
+    document.head.appendChild(script);
+  }, [pId, isExcluded]);
+
+  return null;
 }

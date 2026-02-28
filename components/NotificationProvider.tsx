@@ -45,6 +45,26 @@ export default function NotificationProvider() {
 				"/firebase-messaging-sw.js",
 			);
 
+			if (!registration.active) {
+				await new Promise<void>((resolve) => {
+					const serviceWorker = registration.installing || registration.waiting;
+					if (!serviceWorker) {
+						resolve();
+						return;
+					}
+					const stateChangeListener = () => {
+						if (serviceWorker.state === "activated") {
+							serviceWorker.removeEventListener(
+								"statechange",
+								stateChangeListener,
+							);
+							resolve();
+						}
+					};
+					serviceWorker.addEventListener("statechange", stateChangeListener);
+				});
+			}
+
 			const messaging = getMessaging(app);
 			const token = await getToken(messaging, {
 				vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY,
