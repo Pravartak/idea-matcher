@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Send, MoreVertical } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -34,6 +34,7 @@ export default function ChatPage({ targetUser, messages, isOwner }: ChatProps) {
 	const [conversationId, setConversationId] = useState<string | null>(null);
 	const [currentUser, setCurrentUser] = useState<any>(null);
 	const [messagesList, setMessagesList] = useState<any[]>(messages);
+	const messagesContainerRef = useRef<HTMLDivElement>(null);
 
 	useEffect(() => {
 		const unsubscribe = auth.onAuthStateChanged((user) => {
@@ -104,6 +105,12 @@ export default function ChatPage({ targetUser, messages, isOwner }: ChatProps) {
 			unsubscribeConversation();
 		};
 	}, [conversationId, currentUser]);
+
+	useEffect(() => {
+		const container = messagesContainerRef.current;
+		if (!container) return;
+		container.scrollTop = container.scrollHeight;
+	}, [messagesList]);
 
 	const handleSendMessage = async () => {
 		if (messageInput.trim() && conversationId && targetUser?.uid) {
@@ -217,7 +224,7 @@ export default function ChatPage({ targetUser, messages, isOwner }: ChatProps) {
 			</div>
 
 			{/* Chat Area */}
-			<div className="flex-1 overflow-y-auto p-4">
+			<div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4">
 				<div className="max-w-2xl mx-auto w-full flex flex-col min-h-full">
 					<div className="text-center space-y-2 mb-8">
 						<Avatar className="h-16 w-16 mx-auto">
