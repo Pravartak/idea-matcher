@@ -391,7 +391,7 @@ export default function Connections() {
 					<div className="max-w-4xl mx-auto w-full px-4 py-4 flex items-center justify-between">
 						<button
 							onClick={() => router.back()}
-							className="p-2 hover:bg-muted rounded-lg transition-colors"
+							className="p-2 hover:bg-muted rounded-lg border border-border/70 transition-colors"
 							aria-label="Go back">
 							<ArrowLeft className="h-5 w-5" />
 						</button>
@@ -401,7 +401,7 @@ export default function Connections() {
 								size="icon"
 								variant="ghost"
 								onClick={() => setShowRequests(!showRequests)}
-								className="relative">
+								className="relative border border-border/70">
 								<Bell className="h-5 w-5" />
 								{userRequests.length > 0 && (
 									<span className="absolute top-1 right-1 h-2 w-2 bg-primary rounded-full" />
@@ -410,7 +410,7 @@ export default function Connections() {
 
 							{/* Requests Dropdown */}
 							{showRequests && (
-								<div className="absolute right-0 mt-2 w-80 bg-card border border-border rounded-lg shadow-lg p-4 max-h-96 overflow-y-auto z-30">
+								<div className="absolute right-0 mt-2 w-80 max-w-[calc(100vw-1.5rem)] bg-card border border-border rounded-lg shadow-lg p-4 max-h-96 overflow-y-auto z-30">
 									<h3 className="font-mono font-bold mb-4">
 										Connection Requests
 									</h3>

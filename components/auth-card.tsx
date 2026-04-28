@@ -10,17 +10,14 @@ import Link from "next/link";
 import {
 	fetchSignInMethodsForEmail,
 	createUserWithEmailAndPassword,
-	getAuth,
 	GoogleAuthProvider,
+	sendPasswordResetEmail,
 	signInWithEmailAndPassword,
 	signInWithPopup,
 } from "firebase/auth";
 import { GithubAuthProvider } from "firebase/auth";
 import { auth } from "@/lib/firebase";
-import {
-	doc,
-	getDoc,
-} from "firebase/firestore";
+import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
 type Mode = "login" | "signup";
@@ -32,104 +29,218 @@ export function AuthCard({ initialMode = "login" }: { initialMode?: Mode }) {
 	const [email, setEmail] = React.useState("");
 	const [password, setPassword] = React.useState("");
 	const [userId, setUserId] = React.useState("");
+	const [isSubmitting, setIsSubmitting] = React.useState(false);
+
+	async function resolveEmailFromIdentifier(identifier: string) {
+		const value = identifier.trim();
+		if (!value) return "";
+		if (value.includes("@")) return value;
+
+		const usernameSnap = await getDoc(doc(db, "usernames", value));
+		if (!usernameSnap.exists()) {
+			throw new Error("Username not found.");
+		}
+
+		const firebaseUid = usernameSnap.data()?.firebaseUid;
+		if (!firebaseUid) {
+			throw new Error("Username is not linked to a valid account.");
+		}
+
+		const userSnap = await getDoc(doc(db, "users", firebaseUid));
+		if (!userSnap.exists() || !userSnap.data()?.Email) {
+			throw new Error("No email is linked to this username.");
+		}
+
+		return String(userSnap.data().Email);
+	}
 
 	async function handleSignup() {
 		try {
-			const methods = await fetchSignInMethodsForEmail(auth, email);
+			setIsSubmitting(true);
+			const signupEmail = email.trim();
+			const signupPassword = password.trim();
+			const signupUserId = userId.trim();
 
-			if (methods.includes("github.com")) {
+			if (!signupEmail || !signupPassword || !signupUserId) {
+				alert("Email, password, and user ID are required.");
+				return;
+			}
+			if (signupPassword.length < 6) {
+				alert("Password must be at least 6 characters.");
+				return;
+			}
+			if (!/^[a-zA-Z0-9_]{3,20}$/.test(signupUserId)) {
 				alert(
-					"This account was created using GitHub. Please sign in with GitHub.",
+					"User ID must be 3-20 characters and use letters, numbers, or underscores.",
 				);
 				return;
 			}
 
-			if (!methods.includes("password")) {
-				alert("This account does not use email & password login.");
+			const usernameRef = doc(db, "usernames", signupUserId);
+			const usernameSnap = await getDoc(usernameRef);
+			if (usernameSnap.exists()) {
+				alert("User ID is already taken. Please choose another one.");
 				return;
 			}
 
-			if (methods.includes("google.com")) {
-				alert(
-					"This account was created using Google. Please sign in with Google.",
-				);
+			const methods = await fetchSignInMethodsForEmail(auth, signupEmail);
+
+			if (methods.length > 0) {
+				if (methods.includes("google.com")) {
+					alert(
+						"This account already exists with Google. Please sign in with Google.",
+					);
+					return;
+				}
+				if (methods.includes("github.com")) {
+					alert(
+						"This account already exists with GitHub. Please sign in with GitHub.",
+					);
+					return;
+				}
+				if (methods.includes("password")) {
+					alert("This email is already registered. Please log in.");
+					return;
+				}
+				alert("This email is already linked to another sign-in method.");
 				return;
 			}
 			const userCredential = await createUserWithEmailAndPassword(
 				auth,
-				email,
-				password,
+				signupEmail,
+				signupPassword,
 			);
 			console.log("firebaseUid:", userCredential.user.uid);
+			localStorage.setItem("pendingUsername", signupUserId);
 
 			router.push("/onboarding/profile"); // Redirect to complete profile after signup
 		} catch (error: any) {
 			alert(error.message);
+		} finally {
+			setIsSubmitting(false);
 		}
 	}
 
 	async function handleLogin() {
 		try {
-			await signInWithEmailAndPassword(auth, email, password);
+			setIsSubmitting(true);
+			const loginIdentifier = email.trim();
+			const loginPassword = password.trim();
+
+			if (!loginIdentifier || !loginPassword) {
+				alert("Please enter your email/username and password.");
+				return;
+			}
+
+			const loginEmail = await resolveEmailFromIdentifier(loginIdentifier);
+			const methods = await fetchSignInMethodsForEmail(auth, loginEmail);
+			if (!methods.includes("password")) {
+				if (methods.includes("google.com")) {
+					alert("This account uses Google sign-in. Please continue with Google.");
+					return;
+				}
+				if (methods.includes("github.com")) {
+					alert("This account uses GitHub sign-in. Please continue with GitHub.");
+					return;
+				}
+				alert("This account does not support email/password login.");
+				return;
+			}
+			const credential = await signInWithEmailAndPassword(
+				auth,
+				loginEmail,
+				loginPassword,
+			);
+
+			const profileSnap = await getDoc(doc(db, "users", credential.user.uid));
+			if (!profileSnap.exists()) {
+				router.push("/onboarding/profile");
+				return;
+			}
 			router.push("/home"); // Redirect to a dashboard or home page after login
 		} catch (error: any) {
 			alert(error.message);
+		} finally {
+			setIsSubmitting(false);
 		}
 	}
 
 	async function githubLogin() {
-		const auth = getAuth();
+		setIsSubmitting(true);
 		const provider = new GithubAuthProvider();
-		signInWithPopup(auth, provider)
-			.then(async (result) => {
-				const credential = GithubAuthProvider.credentialFromResult(result);
-				const token = credential?.accessToken;
-				const firebaseUid = result.user.uid;
+		try {
+			const result = await signInWithPopup(auth, provider);
+			const firebaseUid = result.user.uid;
 
-				const docRef = doc(db, "users", firebaseUid);
-				const docSnap = await getDoc(docRef);
+			const docRef = doc(db, "users", firebaseUid);
+			const docSnap = await getDoc(docRef);
 
-				if (!docSnap.exists()) {
-					// New user, redirect to profile completion
-					router.push("/onboarding/profile");
-					localStorage.setItem("user", JSON.stringify(result.user));
-				} else {
-					router.push("/home"); // Redirect to a dashboard or home page after login
-				}
-			})
-			.catch((error) => {
-				const errorCode = error.code;
-				const errorMessage = error.message;
-				const email = error.customData.email;
-				const credential = GithubAuthProvider.credentialFromError(error);
-				alert(errorMessage);
-			});
+			if (!docSnap.exists()) {
+				// New user, redirect to profile completion
+				router.push("/onboarding/profile");
+				localStorage.setItem("user", JSON.stringify(result.user));
+			} else {
+				router.push("/home"); // Redirect to a dashboard or home page after login
+			}
+		} catch (error: any) {
+			alert(error.message);
+		} finally {
+			setIsSubmitting(false);
+		}
 	}
 
 	async function googleLogin() {
-		const auth = getAuth();
+		setIsSubmitting(true);
 		const provider = new GoogleAuthProvider();
-		signInWithPopup(auth, provider)
-			.then(async (result) => {
-				const credential = GoogleAuthProvider.credentialFromResult(result);
-				const token = credential?.accessToken;
-				const firebaseUid = result.user.uid;
+		try {
+			const result = await signInWithPopup(auth, provider);
+			const firebaseUid = result.user.uid;
 
-				const docRef = doc(db, "users", firebaseUid);
-				const docSnap = await getDoc(docRef);
+			const docRef = doc(db, "users", firebaseUid);
+			const docSnap = await getDoc(docRef);
 
-				if (!docSnap.exists()) {
-					// New user, redirect to profile completion
-					router.push("/onboarding/profile");
-					localStorage.setItem("user", JSON.stringify(result.user));
-				} else {
-					router.push("/home"); // Redirect to a dashboard or home page after login
+			if (!docSnap.exists()) {
+				// New user, redirect to profile completion
+				router.push("/onboarding/profile");
+				localStorage.setItem("user", JSON.stringify(result.user));
+			} else {
+				router.push("/home"); // Redirect to a dashboard or home page after login
+			}
+		} catch (error: any) {
+			alert(error.message);
+		} finally {
+			setIsSubmitting(false);
+		}
+	}
+
+	async function handleForgotPassword() {
+		try {
+			setIsSubmitting(true);
+			if (!email.trim()) {
+				alert("Enter your email or username first.");
+				return;
+			}
+			const resolvedEmail = await resolveEmailFromIdentifier(email.trim());
+			const methods = await fetchSignInMethodsForEmail(auth, resolvedEmail);
+			if (!methods.includes("password")) {
+				if (methods.includes("google.com")) {
+					alert("This account uses Google sign-in. Use Google login instead of password reset.");
+					return;
 				}
-			})
-			.catch((error) => {
-				const errorMessage = error.message;
-				alert(errorMessage);
-			});
+				if (methods.includes("github.com")) {
+					alert("This account uses GitHub sign-in. Use GitHub login instead of password reset.");
+					return;
+				}
+				alert("Password reset is not available for this account.");
+				return;
+			}
+			await sendPasswordResetEmail(auth, resolvedEmail);
+			alert("Password reset email sent.");
+		} catch (error: any) {
+			alert(error.message);
+		} finally {
+			setIsSubmitting(false);
+		}
 	}
 
 	return (
@@ -164,9 +275,11 @@ export function AuthCard({ initialMode = "login" }: { initialMode?: Mode }) {
 						</Label>
 						<Input
 							id="email"
-							type="email"
-							inputMode="email"
-							placeholder="you@example.com"
+							type="text"
+							inputMode={isLogin ? "text" : "email"}
+							placeholder={
+								isLogin ? "you@example.com or username" : "you@example.com"
+							}
 							className="
                 bg-background/60
                 border border-border
@@ -175,7 +288,8 @@ export function AuthCard({ initialMode = "login" }: { initialMode?: Mode }) {
                 text-base md:text-sm
               "
 							aria-label="Email"
-							autoComplete="email"
+							autoComplete={isLogin ? "username" : "email"}
+							value={email}
 							onChange={(e) => setEmail(e.target.value)}
 							required
 						/>
@@ -199,6 +313,7 @@ export function AuthCard({ initialMode = "login" }: { initialMode?: Mode }) {
                 "
 								aria-label="User ID"
 								autoComplete="username"
+								value={userId}
 								onChange={(e) => setUserId(e.target.value)}
 								required
 							/>
@@ -212,6 +327,10 @@ export function AuthCard({ initialMode = "login" }: { initialMode?: Mode }) {
 							</Label>
 							<a
 								href="#"
+								onClick={(e) => {
+									e.preventDefault();
+									handleForgotPassword();
+								}}
 								className="text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
 								Forgot password?
 							</a>
@@ -229,6 +348,7 @@ export function AuthCard({ initialMode = "login" }: { initialMode?: Mode }) {
               "
 							aria-label="Password"
 							autoComplete={isLogin ? "current-password" : "new-password"}
+							value={password}
 							onChange={(e) => setPassword(e.target.value)}
 							required
 						/>
@@ -237,6 +357,7 @@ export function AuthCard({ initialMode = "login" }: { initialMode?: Mode }) {
 					<Button
 						type="button"
 						onClick={isLogin ? handleLogin : handleSignup}
+						disabled={isSubmitting}
 						className="
               w-full
               font-semibold
@@ -246,7 +367,11 @@ export function AuthCard({ initialMode = "login" }: { initialMode?: Mode }) {
               transition
             "
 						size="lg">
-						{isLogin ? "Log in" : "Create Account"}
+						{isSubmitting
+							? "Please wait..."
+							: isLogin
+								? "Log in"
+								: "Create Account"}
 					</Button>
 
 					<div className="relative my-2">
@@ -263,6 +388,7 @@ export function AuthCard({ initialMode = "login" }: { initialMode?: Mode }) {
 					<div className="grid gap-3">
 						<Button
 							variant="outline"
+							disabled={isSubmitting}
 							className="
                 w-full
                 bg-background/60
@@ -282,6 +408,7 @@ export function AuthCard({ initialMode = "login" }: { initialMode?: Mode }) {
 						</Button>
 						<Button
 							variant="secondary"
+							disabled={isSubmitting}
 							className="
                 w-full
                 bg-white text-black

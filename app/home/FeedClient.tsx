@@ -247,7 +247,7 @@ export default function FeedClient({ initialPosts }: { initialPosts: Post[] }) {
 				/>
 			)}
 			<aside
-				className={`fixed left-0 top-0 h-full bg-sidebar border-r border-sidebar-border p-4 flex flex-col z-40 transition-all duration-300 ${
+				className={`fixed left-0 top-0 h-full overflow-y-auto bg-sidebar border-r border-sidebar-border p-4 flex flex-col z-40 transition-all duration-300 ${
 					sidebarExpanded ? "md:w-64" : "md:w-16"
 				} w-64 ${
 					mobileMenuOpen
@@ -376,9 +376,9 @@ export default function FeedClient({ initialPosts }: { initialPosts: Post[] }) {
 					sidebarExpanded ? "md:ml-64" : "md:ml-16"
 				} ml-0`}>
 				{/* Top Header */}
-				<header className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm border-b border-border px-6 py-4 flex items-center justify-between md:justify-center">
+				<header className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm border-b border-border px-4 md:px-6 py-4 flex items-center justify-between md:justify-center">
 					<button
-						className="md:hidden p-2 -ml-2 hover:bg-accent rounded-md"
+						className="md:hidden p-2 -ml-2 hover:bg-accent rounded-md border border-border/70"
 						onClick={() => setMobileMenuOpen(true)}>
 						<Menu className="w-5 h-5" />
 					</button>
@@ -389,7 +389,7 @@ export default function FeedClient({ initialPosts }: { initialPosts: Post[] }) {
 				</header>
 
 				{/* Feed */}
-				<div className="p-4 md:p-6 space-y-4 max-w-2xl mx-auto">
+				<div className="p-4 md:p-6 space-y-4 max-w-2xl mx-auto w-full">
 					{
 						<>
 							{!userData && (

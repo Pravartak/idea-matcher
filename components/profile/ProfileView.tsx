@@ -193,24 +193,6 @@ export default function ProfilePage({
 }: ProfileViewProps) {
 	// const router = useRouter();
 
-	useEffect(() => {
-		const meta = document.querySelector("meta[name='viewport']");
-		const originalContent = meta?.getAttribute("content");
-
-		if (meta) {
-			meta.setAttribute(
-				"content",
-				"width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0",
-			);
-		}
-
-		return () => {
-			if (meta && originalContent) {
-				meta.setAttribute("content", originalContent);
-			}
-		};
-	}, []);
-
 	const [connectionStatus, setConnectionStatus] = useState<string | null>(null);
 	const [isFollowing, setIsFollowing] = useState(false);
 	const [isSharing, setIsSharing] = useState(false);

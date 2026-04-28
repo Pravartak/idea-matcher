@@ -534,20 +534,20 @@ export default function SearchPage() {
 
 	return (
 		<div className="min-h-screen bg-background flex flex-col">
-			<div className="max-w-2xl mx-auto w-full px-4 py-8">
+			<div className="max-w-4xl mx-auto w-full px-4 py-6 sm:py-8">
 				{/* Header with Back Button */}
-				<div className="flex items-center gap-4 mb-8">
+				<div className="flex items-center gap-3 sm:gap-4 mb-6 sm:mb-8">
 					<button
 						onClick={() => router.back()}
-						className="p-2 hover:bg-muted rounded-lg transition-colors"
+						className="p-2 hover:bg-muted rounded-lg border border-border/70 transition-colors"
 						aria-label="Go back">
 						<ArrowLeft className="h-5 w-5" />
 					</button>
-					<h1 className="text-2xl font-mono font-bold">Search</h1>
+					<h1 className="text-xl sm:text-2xl font-mono font-bold">Search</h1>
 				</div>
 
 				{/* Search Bar */}
-				<div className="relative mb-8">
+				<div className="relative mb-6 sm:mb-8">
 					<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-5 w-5" />
 					<Input
 						placeholder="Search..."
@@ -558,7 +558,7 @@ export default function SearchPage() {
 								saveSearch();
 							}
 						}}
-						className="pl-10 pr-10 py-6 text-lg"
+						className="pl-10 pr-10 py-5 sm:py-6 text-base sm:text-lg border-border/70"
 					/>
 					{searchQuery && (
 						<button
@@ -573,13 +573,13 @@ export default function SearchPage() {
 				</div>
 
 				{/* Type Selection */}
-				<div className="flex flex-wrap gap-3 mb-8">
+				<div className="flex flex-wrap gap-2 sm:gap-3 mb-6 sm:mb-8">
 					{searchTypes.map(({ type, prefix, label }) => (
 						<Button
 							key={type}
 							onClick={() => handleTypeSelect(type)}
 							variant={selectedType === type ? "default" : "outline"}
-							className="font-mono">
+							className="font-mono border-border/70">
 							<span className="text-lg">{prefix}</span>
 							{label}
 						</Button>

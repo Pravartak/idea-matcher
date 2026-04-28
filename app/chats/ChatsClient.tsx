@@ -391,15 +391,15 @@ export default function InboxPage({
 		<div className="min-h-screen bg-background flex flex-col">
 			{/* Top Header */}
 			<div className="sticky top-0 bg-background border-b border-border z-10">
-				<div className="max-w-2xl mx-auto w-full px-4 py-4 flex items-center justify-between">
+				<div className="max-w-4xl mx-auto w-full px-4 py-4 flex items-center justify-between">
 					<button
 						onClick={() => router.back()}
-						className="p-2 hover:bg-muted rounded-lg transition-colors"
+						className="p-2 hover:bg-muted rounded-lg border border-border/70 transition-colors"
 						aria-label="Go back">
 						<ArrowLeft className="h-5 w-5" />
 					</button>
 					<h1 className="text-lg font-mono font-bold">{viewerUsername}</h1>
-					<Button size="icon" variant="ghost" onClick={toggleNewChatView}>
+					<Button size="icon" variant="ghost" className="border border-border/70" onClick={toggleNewChatView}>
 						<Plus
 							className={`h-5 w-5 transition-transform ${showNewChatView ? "rotate-45" : ""}`}
 						/>
@@ -407,7 +407,7 @@ export default function InboxPage({
 				</div>
 			</div>
 
-			<div className="max-w-2xl mx-auto w-full px-4 py-8">
+			<div className="max-w-4xl mx-auto w-full px-4 py-6 sm:py-8">
 				{/* Search Bar */}
 				<div className="relative mb-8">
 					<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />

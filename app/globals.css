@@ -56,8 +56,8 @@
   --accent-foreground: #ffffff;
   --destructive: #1a1a1a;
   --destructive-foreground: #ffffff;
-  --border: #1a1a1a; /* border same family as cards */
-  --input: #1a1a1a;
+  --border: #2f2f2f; /* increase contrast for visible outlines */
+  --input: #2f2f2f;
   --ring: #6366f1; /* use primary as focus ring */
   --chart-1: #6366f1;
   --chart-2: #1a1a1a;
@@ -122,5 +122,6 @@
   }
   body {
     @apply bg-background text-foreground;
+    overflow-x: hidden;
   }
 }

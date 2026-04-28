@@ -17,7 +17,7 @@ const projectNotifs: Notification[] = [
 ]
 
 const individualNotifs: Notification[] = [
-  { id: "in1", title: "Ava mentioned you", detail: "‘Can you review the outline?’", time: "1h ago" },
+  { id: "in1", title: "Ava mentioned you", detail: "'Can you review the outline?'", time: "1h ago" },
 ]
 
 const teamNotifs: Notification[] = [
@@ -36,13 +36,12 @@ export function NotificationsDropdown() {
         >
           Notifications
           <span className="sr-only">Open notifications</span>
-          {/* dot */}
           <span className="absolute -top-1 -right-1 inline-block h-2 w-2 rounded-full bg-primary" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="end"
-        className="w-[360px] p-2 bg-background/70 backdrop-blur-md border border-border/60 shadow-lg rounded-xl"
+        className="w-[360px] max-w-[calc(100vw-1rem)] p-2 bg-background/70 backdrop-blur-md border border-border/60 shadow-lg rounded-xl"
       >
         <Section title="Projects" items={projectNotifs} />
         <Section title="Individuals" items={individualNotifs} />

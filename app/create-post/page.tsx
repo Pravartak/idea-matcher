@@ -276,7 +276,7 @@ export default function CreatePostPage() {
 					<Button
 						variant="ghost"
 						size="icon"
-						className="text-foreground hover:bg-secondary">
+						className="text-foreground hover:bg-secondary border border-border/70">
 						<ChevronLeft className="w-5 h-5" />
 					</Button>
 				</Link>
@@ -287,7 +287,7 @@ export default function CreatePostPage() {
 			</header>
 
 			{/* Main Content */}
-			<main className="max-w-2xl mx-auto p-4 sm:p-6 space-y-6">
+			<main className="max-w-4xl mx-auto p-4 sm:p-6 space-y-6">
 				{/* User Info */}
 				<div className="flex items-center gap-4">
 					<Avatar className="w-12 h-12">
@@ -299,9 +299,9 @@ export default function CreatePostPage() {
 							{userData?.Name[0]}
 						</AvatarFallback>
 					</Avatar>
-					<div>
+					<div className="min-w-0">
 						<div className="flex items-center gap-2">
-							<p className="font-mono font-medium text-foreground">
+							<p className="font-mono font-medium text-foreground truncate">
 								{userData?.Name}
 							</p>
 							{userData?.verified && (
@@ -310,7 +310,7 @@ export default function CreatePostPage() {
 								</span>
 							)}
 						</div>
-						<p className="font-mono text-sm text-muted-foreground">
+						<p className="font-mono text-sm text-muted-foreground truncate">
 							@{userData?.username}
 						</p>
 					</div>
@@ -417,7 +417,7 @@ export default function CreatePostPage() {
 									</p>
 									<button
 										onClick={() => handleRemoveMedia(index)}
-										className="absolute top-2 right-2 p-1 bg-destructive/90 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+										className="absolute top-2 right-2 p-1 bg-destructive/90 rounded-full opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
 										<Trash2 className="w-4 h-4 text-destructive-foreground" />
 									</button>
 								</div>
@@ -482,7 +482,7 @@ export default function CreatePostPage() {
 						type="text"
 						value={tagInput}
 						onChange={(e) => setTagInput(e.target.value)}
-						onKeyPress={handleAddTag}
+						onKeyDown={handleAddTag}
 						placeholder="Type and press Enter to add tags (e.g., #WebDev, #Startup)..."
 						className="w-full bg-card border border-border rounded-lg px-4 py-2 font-mono text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
 					/>
@@ -496,7 +496,7 @@ export default function CreatePostPage() {
 									<button
 										onClick={() => handleRemoveTag(tag)}
 										className="hover:bg-primary/30 rounded-full p-0.5 transition-colors">
-										×
+										x
 									</button>
 								</div>
 							))}

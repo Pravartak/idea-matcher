@@ -39,7 +39,9 @@ export default function ProfileSetupPage() {
 
 	const [avatarUrl, setAvatarUrl] = useState<string | null>(user?.photoURL || null);
 	const [name, setName] = useState(user?.displayName || "");
-	const [username, setUsername] = useState("");
+	const [username, setUsername] = useState(
+		typeof window !== "undefined" ? localStorage.getItem("pendingUsername") || "" : ""
+	);
 	const [bio, setBio] = useState("");
 	const [domain, setDomain] = useState<string>("");
 	const [github, setGithub] = useState("");
@@ -120,6 +122,7 @@ export default function ProfileSetupPage() {
 				await setDoc(doc(db, "usernames", username), {
 					firebaseUid: firebaseUid,
 				});
+				localStorage.removeItem("pendingUsername");
 			}
 			router.push("/onboarding/interests");
 		}
