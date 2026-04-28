@@ -276,7 +276,8 @@ export default function CreatePostPage() {
 					<Button
 						variant="ghost"
 						size="icon"
-						className="text-foreground hover:bg-secondary border border-border/70">
+						className="text-foreground hover:bg-secondary border border-border/70"
+						title="Go back">
 						<ChevronLeft className="w-5 h-5" />
 					</Button>
 				</Link>
@@ -416,6 +417,7 @@ export default function CreatePostPage() {
 										{media.alt}
 									</p>
 									<button
+										title="Remove"
 										onClick={() => handleRemoveMedia(index)}
 										className="absolute top-2 right-2 p-1 bg-destructive/90 rounded-full opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
 										<Trash2 className="w-4 h-4 text-destructive-foreground" />

@@ -562,6 +562,7 @@ export default function SearchPage() {
 					/>
 					{searchQuery && (
 						<button
+							title="Clear search"
 							onClick={() => {
 								setSearchQuery("");
 								setResults([]);

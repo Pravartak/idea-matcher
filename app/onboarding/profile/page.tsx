@@ -167,13 +167,14 @@ export default function ProfileSetupPage() {
 					</div>
 					<div className="flex items-center gap-2">
 						<input
+							title="Upload Avatar"
 							ref={fileRef}
 							type="file"
 							accept="image/*"
 							className="hidden"
 							onChange={onFileChange}
 						/>
-						<Button onClick={() => fileRef.current?.click()}>
+						<Button onClick={() => fileRef.current?.click()} title="Upload Avatar">
 							Upload Photo
 						</Button>
 					</div>
@@ -243,6 +244,7 @@ export default function ProfileSetupPage() {
 						What best describes you?
 					</label>
 					<select
+						title="Select Domain"
 						value={domain}
 						onChange={(e) => setDomain(e.target.value)}
 						className={cn(
@@ -289,7 +291,9 @@ export default function ProfileSetupPage() {
 				{/* Actions */}
 				<div className="mt-10 flex items-center justify-end">
 					<div className="flex items-center gap-2">
-						<Button onClick={handleContinue}>Continue</Button>
+						<Button onClick={handleContinue} title="Continue">
+							Continue
+						</Button>
 					</div>
 				</div>
 			</section>

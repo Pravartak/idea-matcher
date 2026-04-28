@@ -272,6 +272,7 @@ export default function FeedClient({ initialPosts }: { initialPosts: Post[] }) {
 							IdeaMatcher_
 						</span>
 						<button
+							title="Close Menu"
 							onClick={() => setMobileMenuOpen(false)}
 							className="p-2 rounded-lg hover:bg-sidebar-accent transition-colors">
 							<X className="w-5 h-5 text-foreground" />
@@ -378,6 +379,7 @@ export default function FeedClient({ initialPosts }: { initialPosts: Post[] }) {
 				{/* Top Header */}
 				<header className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm border-b border-border px-4 md:px-6 py-4 flex items-center justify-between md:justify-center">
 					<button
+						title="Open Menu"
 						className="md:hidden p-2 -ml-2 hover:bg-accent rounded-md border border-border/70"
 						onClick={() => setMobileMenuOpen(true)}>
 						<Menu className="w-5 h-5" />

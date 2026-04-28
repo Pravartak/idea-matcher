@@ -353,6 +353,7 @@ export default function ProfilePage({
 						</Link>
 					) : (
 						<button
+							title="Share Profile"
 							onClick={handleShare}
 							className="flex h-8 w-8 items-center justify-center rounded-lg transition-colors hover:bg-accent sm:h-9 sm:w-9">
 							<Share2 className="h-4 w-4 sm:h-5 sm:w-5" />

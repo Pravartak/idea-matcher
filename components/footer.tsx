@@ -32,7 +32,7 @@ export function Footer() {
           <a
             href="https://github.com/Pravartak"
             target="_blank"
-            rel="noreferrer"
+            rel="noopener noreferrer"
             className="rounded-md border border-border/70 px-3 py-2 transition-colors hover:bg-muted/40 hover:text-foreground"
           >
             GitHub

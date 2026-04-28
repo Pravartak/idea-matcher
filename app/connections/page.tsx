@@ -443,6 +443,7 @@ export default function Connections() {
 						/>
 						{searchQuery && (
 							<button
+								title="Clear"
 								onClick={clearSearch}
 								className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 hover:bg-muted rounded transition-colors">
 								<X className="h-4 w-4 text-muted-foreground" />
